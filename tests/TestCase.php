@@ -3,8 +3,8 @@
 namespace LiveIntent\LaravelCommon\Tests;
 
 use Orchestra\Testbench\TestCase as Orchestra;
-use LiveIntent\LaravelCommon\LaravelCommonServiceProvider;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use LiveIntent\LaravelCommon\LaravelCommonServiceProvider;
 
 class TestCase extends Orchestra
 {
