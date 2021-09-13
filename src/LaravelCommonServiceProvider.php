@@ -13,6 +13,11 @@ use LiveIntent\LaravelCommon\Console\ApiResourceMakeCommand;
 
 class LaravelCommonServiceProvider extends PackageServiceProvider
 {
+    /**
+     * Configure the package.
+     *
+     * @return void
+     */
     public function configurePackage(Package $package): void
     {
         $package

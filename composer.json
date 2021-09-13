@@ -46,6 +46,7 @@
     "extra": {
         "laravel": {
             "providers": [
+                "LiveIntent\\LaravelCommon\\MacroServiceProvider",
                 "LiveIntent\\LaravelCommon\\LaravelCommonServiceProvider"
             ],
             "aliases": {
