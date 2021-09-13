@@ -10,7 +10,7 @@ class {{ class }} extends AbstractResource
     /**
      * The base model of the resource.
      *
-     * @var \Illuminate\Database\Eloquent\Model
+     * @var \App\Models\{{ model }}
      */
     protected static $model = {{ model }}::class;
 
@@ -53,7 +53,7 @@ class {{ class }} extends AbstractResource
     /**
      * Transform the resource into an array.
      *
-     * @param  \Illuminate\Http\Request  $request
+     * @param \Illuminate\Contracts\Support\Arrayable|JsonSerializable|array
      * @return array
      */
     public function toArray($request)
