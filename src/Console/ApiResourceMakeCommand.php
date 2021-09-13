@@ -71,7 +71,7 @@ class ApiResourceMakeCommand extends GeneratorCommand
     }
 
     /**
-     * Create a controller for the model.
+     * Create tests for the model.
      *
      * @return void
      */
@@ -105,7 +105,7 @@ class ApiResourceMakeCommand extends GeneratorCommand
     }
 
     /**
-     * Create a controller for the model.
+     * Create form requests for the model.
      *
      * @return void
      */
@@ -123,7 +123,7 @@ class ApiResourceMakeCommand extends GeneratorCommand
     }
 
     /**
-     * Create a controller for the model.
+     * Create an Eloquent model.
      *
      * @return void
      */
@@ -137,7 +137,7 @@ class ApiResourceMakeCommand extends GeneratorCommand
     }
 
     /**
-     * Create a controller for the model.
+     * Create a resource for the model.
      *
      * @return void
      */
