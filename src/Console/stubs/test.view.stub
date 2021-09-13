@@ -1,0 +1,38 @@
+<?php
+
+namespace {{ namespace }};
+
+use {{ namespacedModel }};
+use Tests\Feature\Api\ApiTestCase;
+
+class View{{ model }}Test extends ApiTestCase
+{
+    /** @test */
+    public function a_user_can_view_a_single_{{ modelLowercased }}()
+    {
+        ${{ modelVariable }} = {{ model }}::factory()->create();
+
+        $response = $this->get("{{ uri }}/{${{ modelVariable }}->id}");
+
+        $response->assertResponseData([
+            'id' => ${{ modelVariable }}->id,
+            'name' => ${{ modelVariable }}->name,
+            'anotherField' => ${{ modelVariable }}->another_field,
+        ]);
+    }
+
+    /** @test */
+    public function {{ modelLowercasedPlural }}_are_filterable_by_another_field()
+    {
+        {{ model }}::factory(1)->create(['another_field' => 'one']);
+        {{ model }}::factory(2)->create(['another_field' => 'two']);
+        {{ model }}::factory(3)->create(['another_field' => 'three']);
+
+        $this->get('{{ uri }}?filter[anotherField]=one')->assertResponseCount(1);
+        $this->get('{{ uri }}?filter[anotherField]=two')->assertResponseCount(2);
+        $this->get('{{ uri }}?filter[anotherField]=three')->assertResponseCount(3);
+        $this->get('{{ uri }}?filter[anotherField]=one,two')->assertResponseCount(3);
+        $this->get('{{ uri }}?filter[anotherField]=two,three')->assertResponseCount(5);
+        $this->get('{{ uri }}')->assertResponseCount(6);
+    }
+}

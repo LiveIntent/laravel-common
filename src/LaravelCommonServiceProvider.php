@@ -3,23 +3,26 @@
 namespace LiveIntent\LaravelCommon;
 
 use Spatie\LaravelPackageTools\Package;
+use LiveIntent\LaravelCommon\Console\TestMakeCommand;
+use LiveIntent\LaravelCommon\Console\ModelMakeCommand;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
-use LiveIntent\LaravelCommon\Commands\LaravelCommonCommand;
+use LiveIntent\LaravelCommon\Console\RequestMakeCommand;
+use LiveIntent\LaravelCommon\Console\ResourceMakeCommand;
+use LiveIntent\LaravelCommon\Console\ControllerMakeCommand;
+use LiveIntent\LaravelCommon\Console\ApiResourceMakeCommand;
 
 class LaravelCommonServiceProvider extends PackageServiceProvider
 {
     public function configurePackage(Package $package): void
     {
-        /*
-         * This class is a Package Service Provider
-         *
-         * More info: https://github.com/spatie/laravel-package-tools
-         */
         $package
             ->name('laravel-common')
             ->hasConfigFile()
-            ->hasViews()
-            ->hasMigration('create_laravel-common_table')
-            ->hasCommand(LaravelCommonCommand::class);
+            ->hasCommand(ApiResourceMakeCommand::class)
+            ->hasCommand(ControllerMakeCommand::class)
+            ->hasCommand(ModelMakeCommand::class)
+            ->hasCommand(RequestMakeCommand::class)
+            ->hasCommand(ResourceMakeCommand::class)
+            ->hasCommand(TestMakeCommand::class);
     }
 }

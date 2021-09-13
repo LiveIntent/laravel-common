@@ -1,0 +1,50 @@
+<?php
+
+namespace {{ namespace }};
+
+use {{ namespacedModel }};
+use Illuminate\Support\Arr;
+use Tests\Feature\Api\ApiTestCase;
+
+class Store{{ model }}Test extends ApiTestCase
+{
+    /** @test */
+    public function a_user_can_store_a_new_{{ modelLowercased }}()
+    {
+        $attributes = {{ model }}::factory()->definition();
+
+        $this->postJson('{{ uri }}', $attributes)->assertCreated();
+
+        $this->assertDatabaseHas('{{ table }}', $attributes);
+    }
+
+    /** @test */
+    public function the_name_field_is_required()
+    {
+        $attributes = Arr::except({{ model }}::factory()->definition(), 'name');
+
+        $this->postJson('{{ uri }}', $attributes)->assertValidationErrors(['name']);
+
+        $this->assertDatabaseMissing('{{ table }}', $attributes);
+    }
+
+    /** @test */
+    public function the_name_field_must_be_a_string()
+    {
+        $attributes = ['name' => 1];
+
+        $this->postJson('{{ uri }}', $attributes)->assertValidationErrors(['name']);
+
+        $this->assertDatabaseMissing('{{ table }}', $attributes);
+    }
+
+    /** @test */
+    public function the_another_field_field_is_required()
+    {
+        $attributes = Arr::except({{ model }}::factory()->definition(), 'another_field');
+
+        $this->postJson('{{ uri }}', $attributes)->assertValidationErrors(['another_field']);
+
+        $this->assertDatabaseMissing('{{ table }}', $attributes);
+    }
+}

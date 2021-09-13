@@ -1,0 +1,34 @@
+<?php
+
+namespace {{ namespace }};
+
+use {{ namespacedModel }};
+use Tests\Feature\Api\ApiTestCase;
+
+class Delete{{ model }}Test extends ApiTestCase
+{
+    /** @test */
+    public function a_user_can_delete_an_existing_{{ modelLowercased }}()
+    {
+        ${{ modelVariable }} = {{ model }}::factory()->create();
+
+        $this->deleteJson("{{ uri }}/{${{ modelVariable }}->id}")->assertOk();
+
+        $this->assertSoftDeleted(${{ modelVariable }});
+    }
+
+    /** @test */
+    public function deleting_an_already_deleted_{{ modelLowercased }}_gives_404()
+    {
+        ${{ modelVariable }} = {{ model }}::factory()->create();
+
+        $this->deleteJson("{{ uri }}/{${{ modelVariable }}->id}")->assertOk();
+        $this->deleteJson("{{ uri }}/{${{ modelVariable }}->id}")->assertNotFound();
+    }
+
+    /** @test */
+    public function deleting_a_non_existent_{{ modelLowercased }}_gives_404()
+    {
+        $this->deleteJson("{{ uri }}/1")->assertNotFound();
+    }
+}

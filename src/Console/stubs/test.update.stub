@@ -1,0 +1,33 @@
+<?php
+
+namespace {{ namespace }};
+
+use {{ namespacedModel }};
+use Tests\Feature\Api\ApiTestCase;
+
+class Update{{ model }}Test extends ApiTestCase
+{
+    /** @test */
+    public function a_user_can_update_an_existing_{{ modelLowercased }}()
+    {
+        ${{ modelVariable }} = {{ model }}::factory()->create();
+
+        $newName = $this->faker->name();
+
+        $this->putJson("{{ uri }}/{${{ modelVariable }}->id}", ['name' => $newName])->assertOk();
+
+        $this->assertEquals(${{ modelVariable }}->fresh()->name, $newName);
+    }
+
+    /** @test */
+    public function the_name_field_must_be_a_string()
+    {
+        ${{ modelVariable }} = {{ model }}::factory()->create();
+
+        $newName = 1;
+
+        $this->putJson("{{ uri }}/{${{ modelVariable }}->id}", ['name' => $newName])->assertValidationErrors(['name']);
+
+        $this->assertEquals(${{ modelVariable }}->fresh()->name, ${{ modelVariable }}->name);
+    }
+}

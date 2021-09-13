@@ -1,0 +1,63 @@
+<?php
+
+namespace {{ namespace }};
+
+use App\Models\{{ model }};
+use Spatie\QueryBuilder\AllowedFilter;
+
+class {{ class }} extends AbstractResource
+{
+    /**
+     * The base model of the resource.
+     *
+     * @var \Illuminate\Database\Eloquent\Model
+     */
+    protected static $model = {{ model }}::class;
+
+    /**
+     * The allowed sortable fields for the resource.
+     *
+     * @return array
+     */
+    public function allowedSorts()
+    {
+        return [
+            //
+        ];
+    }
+
+    /**
+     * The allowed filters for the resource.
+     *
+     * @return array
+     */
+    public function allowedFilters()
+    {
+        return [
+            AllowedFilter::exact('another_field'),
+        ];
+    }
+
+    /**
+     * The allowed relationships to load for the resource.
+     *
+     * @return array
+     */
+    public function allowedIncludes()
+    {
+        return [
+            //
+        ];
+    }
+
+    /**
+     * Transform the resource into an array.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return array
+     */
+    public function toArray($request)
+    {
+        return parent::toArray($request);
+    }
+}
