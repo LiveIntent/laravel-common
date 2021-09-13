@@ -1,12 +1,12 @@
 <?php
 
-namespace LiveIntent\LaravelCommon\Routing;
+namespace LiveIntent\LaravelCommon\Http;
 
 use ReflectionClass;
 use Spatie\QueryBuilder\QueryBuilder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Resources\Json\JsonResource;
-use LiveIntent\LaravelCommon\Routing\Exceptions\InvalidResourceModelException;
+use LiveIntent\LaravelCommon\Http\Exceptions\InvalidResourceModelException;
 
 abstract class AbstractResource extends JsonResource
 {

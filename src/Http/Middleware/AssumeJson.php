@@ -1,6 +1,6 @@
 <?php
 
-namespace LiveIntent\LaravelCommon\Routing\Middleware;
+namespace LiveIntent\LaravelCommon\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;

@@ -1,5 +1,7 @@
 <?php
 
+namespace LiveIntent\LaravelCommon\Http\Exceptions;
+
 use Exception;
 
 class InvalidResourceModelException extends Exception

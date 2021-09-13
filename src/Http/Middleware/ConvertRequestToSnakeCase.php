@@ -1,16 +1,15 @@
 <?php
 
-namespace LiveIntent\LaravelCommon\Routing\Middleware;
+namespace LiveIntent\LaravelCommon\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
 
-class ConvertResponseToCamelCase
+class ConvertRequestToSnakeCase
 {
     /**
      * Internally we use snake case to match the database fields, but to the external
      * world we'll use camelCase since that's the more common convention for json.
-     *
      *
      * @param  \Illuminate\Http\Request  $request
      * @param  \Closure  $next
@@ -18,13 +17,10 @@ class ConvertResponseToCamelCase
      */
     public function handle(Request $request, Closure $next)
     {
-        $response = $next($request);
+        $request->replace(
+            collect($request->all())->snakeCaseKeys()->toArray()
+        );
 
-        $content = json_decode($response->getContent(), true);
-        $json = collect($content)->camelCaseKeys();
-
-        $response->setContent($json);
-
-        return $response;
+        return $next($request);
     }
 }
