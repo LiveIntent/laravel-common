@@ -43,7 +43,7 @@ class ResourceMakeCommand extends BaseResourceMakeCommand
      * @param  string  $replace
      * @return array
      */
-    protected function buildReplacements($name)
+    protected function buildReplacements(string $name)
     {
         $model = Str::endsWith($name, 'Resource')
                ? class_basename(Str::beforeLast($name, 'Resource'))

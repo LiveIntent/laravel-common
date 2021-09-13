@@ -59,8 +59,10 @@ abstract class AbstractResource extends JsonResource
 
     /**
      * Create a new filtered collection for the resource.
+     *
+     * @return \Illuminate\Http\Resources\Json\AnonymousResourceCollection
      */
-    public static function filteredCollection()
+    public static function filteredCollection(): \Illuminate\Http\Resources\Json\AnonymousResourceCollection
     {
         $model = static::$model;
 

@@ -174,6 +174,7 @@ class ApiResourceMakeCommand extends GeneratorCommand
     protected function getStub()
     {
         // unused
+        return '';
     }
 
     /**

@@ -16,6 +16,7 @@ class MacroServiceProvider extends ServiceProvider
     public function register()
     {
         Collection::macro('camelCaseKeys', function (): Collection {
+            /** @var \Illuminate\Support\Collection $this */
             return $this->mapWithKeys(function ($value, $key) {
                 if (is_array($value)) {
                     return [Str::camel($key) => collect($value)->camelCaseKeys()->toArray()];
@@ -26,6 +27,7 @@ class MacroServiceProvider extends ServiceProvider
         });
 
         Collection::macro('snakeCaseKeys', function (): Collection {
+            /** @var \Illuminate\Support\Collection $this */
             return $this->mapWithKeys(function ($value, $key) {
                 if (is_array($value)) {
                     return [Str::snake($key) => collect($value)->snakeCaseKeys()->toArray()];

@@ -13,4 +13,12 @@
             <directory name="vendor"/>
         </ignoreFiles>
     </projectFiles>
+
+    <issueHandlers>
+        <UndefinedClass>
+            <errorLevel type="suppress">
+                <referencedClass name="Spatie\QueryBuilder\QueryBuilder" />
+            </errorLevel>
+        </UndefinedClass>
+    </issueHandlers>
 </psalm>
