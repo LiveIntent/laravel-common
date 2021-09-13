@@ -41,6 +41,24 @@ Clone this repository and install dependencies via:
 composer install
 ```
 
+When developing a laravel package, it's often useful to be able to develop your package alongside a laravel app without.
+
+With composer you can symlink the package you are developing into the dependencies of your laravel package by updating your app's `composer.json` file.
+
+```json
+{
+  "repositories": [
+    {
+        "type": "path",
+        "url": "../../packages/my-package"
+    }
+  ],
+  "require": {
+    "my/package": "*"
+  }
+}
+```
+
 ## Testing
 
 You can run the tests via:
