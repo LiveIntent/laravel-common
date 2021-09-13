@@ -1,12 +1,12 @@
 {
-    "name": ":vendor_slug/:package_slug",
-    "description": ":package_description",
+    "name": "liveintent/laravel-common",
+    "description": "Common tools for laravel projects",
     "keywords": [
-        ":vendor_name",
+        "LiveIntent",
         "laravel",
-        ":package_slug"
+        "laravel-common"
     ],
-    "homepage": "https://github.com/:vendor_slug/:package_slug",
+    "homepage": "https://github.com/liveintent/laravel-common",
     "require": {
         "php": "^8.0",
         "spatie/laravel-package-tools": "^1.4.3",
@@ -24,13 +24,13 @@
     },
     "autoload": {
         "psr-4": {
-            "VendorName\\Skeleton\\": "src",
-            "VendorName\\Skeleton\\Database\\Factories\\": "database/factories"
+            "LiveIntent\\LaravelCommon\\": "src",
+            "LiveIntent\\LaravelCommon\\Database\\Factories\\": "database/factories"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "VendorName\\Skeleton\\Tests\\": "tests"
+            "LiveIntent\\LaravelCommon\\Tests\\": "tests"
         }
     },
     "scripts": {
@@ -46,10 +46,10 @@
     "extra": {
         "laravel": {
             "providers": [
-                "VendorName\\Skeleton\\SkeletonServiceProvider"
+                "LiveIntent\\LaravelCommon\\LaravelCommonServiceProvider"
             ],
             "aliases": {
-                "Skeleton": "VendorName\\Skeleton\\SkeletonFacade"
+                "LaravelCommon": "LiveIntent\\LaravelCommon\\LaravelCommonFacade"
             }
         }
     },
