@@ -16,14 +16,14 @@ composer require liveintent/laravel-common
 
 ## Development
 
-Clone this repository and install dependencies via:
+To develop this package clone this repository and install dependencies via:
 ```sh
 composer install
 ```
 
-When developing a laravel package, it's often useful to be able to develop your package alongside a laravel app without.
+When developing a laravel package, it's often useful to be able to develop your package alongside a laravel app.
 
-With composer you can symlink the package you are developing into the dependencies of your laravel package by updating your app's `composer.json` file.
+With composer you can symlink the package you are developing into the dependencies of your desired project by updating your project's `composer.json` file.
 
 ```json
 {
