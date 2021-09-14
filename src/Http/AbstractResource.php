@@ -13,7 +13,7 @@ abstract class AbstractResource extends JsonResource
     /**
      * The base model of the resource.
      *
-     * @var \Illuminate\Database\Eloquent\Model
+     * @var string
      */
     protected static $model;
 
