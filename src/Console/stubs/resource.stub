@@ -4,6 +4,7 @@ namespace {{ namespace }};
 
 use App\Models\{{ model }};
 use Spatie\QueryBuilder\AllowedFilter;
+use LiveIntent\LaravelCommon\Http\AbstractResource;
 
 class {{ class }} extends AbstractResource
 {
