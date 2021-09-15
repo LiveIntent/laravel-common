@@ -14,6 +14,13 @@ You can install the package via composer:
 composer require liveintent/laravel-common
 ```
 
+## What's Included
+
+- generator stubs for quick code scaffolding
+- common middleware
+- common macro definitions
+- among other things
+
 ## Development
 
 To develop this package clone this repository and install dependencies via:
