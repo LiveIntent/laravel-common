@@ -45,9 +45,12 @@ class ResourceMakeCommand extends BaseResourceMakeCommand
      */
     protected function buildReplacements(string $name)
     {
-        $model = Str::endsWith($name, 'Resource')
-               ? class_basename(Str::beforeLast($name, 'Resource'))
-               : class_basename($name);
+        if (!Str::endsWith($name, 'Resource')) {
+            $this->error("Resources must be suffixed with 'Resource'!");
+            exit(1);
+        }
+
+        $model = class_basename(Str::beforeLast($name, 'Resource'));
 
         return [
             '{{ model }}' => $model,
