@@ -45,7 +45,7 @@ class ResourceMakeCommand extends BaseResourceMakeCommand
      */
     protected function buildReplacements(string $name)
     {
-        if (!Str::endsWith($name, 'Resource')) {
+        if (! Str::endsWith($name, 'Resource')) {
             $this->error("Resources must be suffixed with 'Resource'!");
             exit(1);
         }
