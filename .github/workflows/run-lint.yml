@@ -20,4 +20,4 @@ jobs:
     - name: Install dependencies
       run: composer i
     - name: Run linter
-      run: ./vendor/bin/php-cs-fixer fix --dry-run --diff --format=checkstyle | cs2pr
+      run: composer lint -- --dry-run --diff --format=checkstyle | cs2pr

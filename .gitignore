@@ -4,7 +4,6 @@
 .phpunit.result.cache
 build
 test-results
-composer.lock
 coverage
 docs
 phpunit.xml
