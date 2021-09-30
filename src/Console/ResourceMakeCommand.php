@@ -7,16 +7,7 @@ use Illuminate\Foundation\Console\ResourceMakeCommand as BaseResourceMakeCommand
 
 class ResourceMakeCommand extends BaseResourceMakeCommand
 {
-    /**
-     * Resolve the fully-qualified path to the stub.
-     *
-     * @param  string  $stub
-     * @return string
-     */
-    protected function resolveStubPath($stub)
-    {
-        return __DIR__.$stub;
-    }
+    use OverridesStubs;
 
     /**
      * Build the class with the given name.

@@ -7,16 +7,7 @@ use Illuminate\Foundation\Console\RequestMakeCommand as BaseRequestMakeCommand;
 
 class RequestMakeCommand extends BaseRequestMakeCommand
 {
-    /**
-     * Resolve the fully-qualified path to the stub.
-     *
-     * @param  string  $stub
-     * @return string
-     */
-    protected function resolveStubPath($stub)
-    {
-        return __DIR__.$stub;
-    }
+    use OverridesStubs;
 
     /**
      * Get the stub file for the generator.

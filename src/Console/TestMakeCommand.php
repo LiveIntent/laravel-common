@@ -9,16 +9,7 @@ use Illuminate\Foundation\Console\TestMakeCommand as BaseTestMakeCommand;
 
 class TestMakeCommand extends BaseTestMakeCommand
 {
-    /**
-     * Resolve the fully-qualified path to the stub.
-     *
-     * @param  string  $stub
-     * @return string
-     */
-    protected function resolveStubPath($stub)
-    {
-        return __DIR__.$stub;
-    }
+    use OverridesStubs;
 
     /**
      * Get the stub file for the generator.

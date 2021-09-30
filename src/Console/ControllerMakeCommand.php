@@ -6,14 +6,5 @@ use Illuminate\Routing\Console\ControllerMakeCommand as BaseControllerMakeComman
 
 class ControllerMakeCommand extends BaseControllerMakeCommand
 {
-    /**
-     * Resolve the fully-qualified path to the stub.
-     *
-     * @param  string  $stub
-     * @return string
-     */
-    protected function resolveStubPath($stub)
-    {
-        return __DIR__.$stub;
-    }
+    use OverridesStubs;
 }
