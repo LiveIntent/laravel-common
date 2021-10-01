@@ -64,12 +64,12 @@ abstract class AbstractResource extends JsonResource
      */
     public static function filteredCollection(): \Illuminate\Http\Resources\Json\AnonymousResourceCollection
     {
-        $model = static::$model;
+        $modelClass = static::$model;
 
         // The QueryBuilder will require a valid database model
         // so before we do anything we'll assert it is valid
-        if (! (new ReflectionClass($model))->isSubclassOf(Model::class)) {
-            throw new InvalidResourceModelException(static::class, $model);
+        if (! (new ReflectionClass($modelClass))->isSubclassOf(Model::class)) {
+            throw new InvalidResourceModelException(static::class, $modelClass);
         }
 
         // Next we'll build up the child resource so that we'll
@@ -78,15 +78,22 @@ abstract class AbstractResource extends JsonResource
 
         // Finally, we use the QueryBuilder to magically filter
         // the collection based on the user's provided query
-        $builder = QueryBuilder::for($model);
+        $builder = QueryBuilder::for($modelClass);
+
+        $model = $builder->getModel();
 
         $collection = $builder
-            ->select($builder->getModel()->getTable() . '.*')
-            ->distinct($builder->getModel()->getTable() . '.' . $builder->getModel()->getKeyName())
+            ->select($model->getTable() . '.*')
+            ->distinct($model->getTable() . '.' . $model->getKeyName())
             ->with($resource->alwaysInclude())
             ->allowedFilters($resource->allowedFilters())
             ->allowedIncludes($resource->allowedIncludes())
-            ->allowedSorts($resource->allowedSorts())
+            ->allowedSorts(
+                array_merge(
+                    $resource->allowedSorts(),
+                    $model->usesTimestamps() ? [$model->getCreatedAtColumn(), $model->getUpdatedAtColumn()] : []
+                )
+            )
             ->jsonPaginate();
 
         return static::collection($collection);

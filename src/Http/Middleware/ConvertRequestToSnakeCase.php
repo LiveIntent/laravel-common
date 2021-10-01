@@ -18,7 +18,7 @@ class ConvertRequestToSnakeCase
     public function handle(Request $request, Closure $next)
     {
         $request->replace(
-            collect($request->all())->snakeCaseKeys()->toArray()
+            $request->collect()->snakeCaseKeys()->snakeCaseValues(['includes', 'sort'])->toArray()
         );
 
         return $next($request);

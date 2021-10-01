@@ -36,5 +36,22 @@ class MacroServiceProvider extends ServiceProvider
                 return [Str::snake($key) => $value];
             });
         });
+
+        Collection::macro('snakeCaseValues', function ($keys): Collection {
+            /** @var \Illuminate\Support\Collection $this */
+            return $this->mapWithKeys(function ($value, $key) use ($keys) {
+                if (is_array($value)) {
+                    return [$key => collect($value)->snakeCaseValues($keys)->toArray()];
+                }
+
+                // If the user has supplied an array of keys, we'll limit
+                // the conversion to values at those keys.
+                if (is_array($keys) && in_array($key, $keys)) {
+                    return [$key => Str::snake($value)];
+                }
+
+                return [$key => Str::snake($value)];
+            });
+        });
     }
 }

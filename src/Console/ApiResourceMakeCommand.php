@@ -39,16 +39,19 @@ class ApiResourceMakeCommand extends GeneratorCommand
             $this->input->setOption('tests', true);
         }
 
+        if ($this->option('controller')) {
+            $this->createController();
+        }
+
+        if ($this->option('model')) {
+            $this->createModel();
+        }
         if ($this->option('model')) {
             $this->createModel();
         }
 
         if ($this->option('resource')) {
             $this->createResource();
-        }
-
-        if ($this->option('controller')) {
-            $this->createController();
         }
 
         if ($this->option('requests')) {
