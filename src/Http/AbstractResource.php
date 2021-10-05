@@ -5,6 +5,7 @@ namespace LiveIntent\LaravelCommon\Http;
 use ReflectionClass;
 use Spatie\QueryBuilder\QueryBuilder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Resources\Json\JsonResource;
 use LiveIntent\LaravelCommon\Http\Exceptions\InvalidResourceModelException;
 
@@ -62,7 +63,7 @@ abstract class AbstractResource extends JsonResource
      *
      * @return \Illuminate\Http\Resources\Json\AnonymousResourceCollection
      */
-    public static function filteredCollection(): \Illuminate\Http\Resources\Json\AnonymousResourceCollection
+    public static function filteredCollection(Builder $query = null): \Illuminate\Http\Resources\Json\AnonymousResourceCollection
     {
         $modelClass = static::$model;
 
@@ -78,7 +79,7 @@ abstract class AbstractResource extends JsonResource
 
         // Finally, we use the QueryBuilder to magically filter
         // the collection based on the user's provided query
-        $builder = QueryBuilder::for($modelClass);
+        $builder = QueryBuilder::for($query ?? $modelClass);
 
         $model = $builder->getModel();
 
