@@ -46,7 +46,7 @@ class MacroServiceProvider extends ServiceProvider
 
                 // If the user has supplied an array of keys, we'll limit
                 // the conversion to values at those keys.
-                if (in_array($key, $keys) || !is_array($keys)) {
+                if (in_array($key, $keys) || ! is_array($keys)) {
                     return [$key => Str::snake($value)];
                 }
 

@@ -20,5 +20,10 @@
                 <referencedClass name="Spatie\QueryBuilder\QueryBuilder" />
             </errorLevel>
         </UndefinedClass>
+        <UndefinedMethod>
+            <errorLevel type="suppress">
+                <referencedMethod name="Illuminate\Notifications\Notification::toMail" />
+            </errorLevel>
+        </UndefinedMethod>
     </issueHandlers>
 </psalm>

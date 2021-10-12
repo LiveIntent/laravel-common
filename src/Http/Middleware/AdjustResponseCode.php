@@ -20,7 +20,7 @@ class AdjustResponseCode
 
         // Magically return 204 to indicate there is nothing for the user to parse.
         // See also: https://github.com/laravel/framework/blob/8.x/src/Illuminate/Routing/Router.php#L773
-        if (!json_decode($response->getContent()) && $response->getStatusCode() < 300) {
+        if (! json_decode($response->getContent()) && $response->getStatusCode() < 300) {
             $response->setStatusCode(204);
         }
 

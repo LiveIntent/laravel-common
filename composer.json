@@ -9,8 +9,8 @@
     "homepage": "https://github.com/liveintent/laravel-common",
     "require": {
         "php": "^8.0",
-        "spatie/laravel-package-tools": "^1.4.3",
-        "illuminate/contracts": "^8.37"
+        "laravel/framework": "^8.64",
+        "spatie/laravel-package-tools": "^1.4.3"
     },
     "require-dev": {
         "brianium/paratest": "^6.2",

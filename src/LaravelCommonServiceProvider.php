@@ -40,7 +40,7 @@ class LaravelCommonServiceProvider extends PackageServiceProvider implements Def
     {
         $package
             ->name('laravel-common')
-            ->hasConfigFile()
+            ->hasConfigFile('liveintent')
             ->hasCommand(ApiResourceMakeCommand::class)
             ->hasCommand(ControllerMakeCommand::class)
             ->hasCommand(FactoryMakeCommand::class)
