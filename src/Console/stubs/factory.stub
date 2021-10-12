@@ -2,10 +2,10 @@
 
 namespace {{ factoryNamespace }};
 
-use Illuminate\Database\Eloquent\Factories\Factory;
 use {{ namespacedModel }};
+use LiveIntent\LaravelCommon\Database\AbstractFactory;
 
-class {{ factory }}Factory extends Factory
+class {{ factory }}Factory extends AbstractFactory
 {
     /**
      * The name of the factory's corresponding model.
