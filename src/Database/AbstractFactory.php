@@ -2,7 +2,7 @@
 
 namespace LiveIntent\LaravelCommon\Database;
 
-use Illuminate\Database\Eloquent\Factory;
+use Illuminate\Database\Eloquent\Factories\Factory;
 
 abstract class AbstractFactory extends Factory
 {
