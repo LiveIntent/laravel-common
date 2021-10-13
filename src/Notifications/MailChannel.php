@@ -45,13 +45,13 @@ class MailChannel extends BaseMailChannel
         return [
             'to' => array_map(fn ($a) => ['email' => $a], $recipients),
             'subject' => $message->subject ?: $title,
-            'greeting' => $message->greeting,
-            'salutation' => Arr::wrap($message->salutation),
             'channels' => ['email'],
             'message' => [
                 'json' => [
                     'icon' => $message->icon,
                     'title' => $title,
+                    'greeting' => $message->greeting,
+                    'salutation' => Arr::wrap($message->salutation),
                     'parts' => $message->parts,
                 ],
             ],
