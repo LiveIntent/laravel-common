@@ -2,7 +2,9 @@
 
 namespace LiveIntent\LaravelCommon\Notifications;
 
-class MailMessage
+use Illuminate\Notifications\Messages\MailMessage as BaseMessage;
+
+class MailMessage extends BaseMessage
 {
     /**
      * The "from" information for the message.
