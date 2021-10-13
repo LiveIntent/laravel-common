@@ -162,12 +162,12 @@ class MailMessage extends BaseMessage
      *
      * @return static
      */
-    public function line($text): static
+    public function line($line): static
     {
         $this->parts[] = [
             'type' => 'text',
             'data' => [
-                'body' => $text,
+                'body' => $line,
             ],
         ];
 
@@ -179,9 +179,9 @@ class MailMessage extends BaseMessage
      *
      * @return static
      */
-    public function action($title, $url): static
+    public function action($text, $url): static
     {
-        return $this->actionButton($title, $url);
+        return $this->actionButton($text, $url);
     }
 
     /**
