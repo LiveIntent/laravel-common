@@ -4,7 +4,7 @@
 [![GitHub Tests Action Status](https://img.shields.io/github/workflow/status/liveintent/laravel-common/run-tests?label=tests)](https://github.com/liveintent/laravel-common/actions?query=workflow%3Arun-tests+branch%3Amain)
 [![GitHub Code Style Action Status](https://img.shields.io/github/workflow/status/liveintent/laravel-common/run-lint?label=code%20style)](https://github.com/liveintent/laravel-common/actions?query=workflow%3Arun-lint+branch%3Amain)
 
-This package contains a collection of shared utilities used across our Laravel projects.
+This package contains a collection of shared helpful utilities used across our Laravel projects.
 
 ## Installation
 
@@ -19,6 +19,8 @@ composer require liveintent/laravel-common
 - generator stubs for quick code scaffolding
 - common middleware
 - common macro definitions
+- http logger
+- notification sending via normani
 - among other things
 
 ## Development
@@ -55,12 +57,6 @@ composer test
 
 # or directly via
 vendor/bin/phpunit
-```
-
-Additionally, you may run the tests in 'watch' mode via:
-
-```sh
-composer test-watch
 ```
 
 ## Linting

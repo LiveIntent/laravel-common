@@ -14,7 +14,7 @@ jobs:
     - name: Setup PHP
       uses: shivammathur/setup-php@master
       with:
-        php-version: 8.0
+        php-version: 8.1
         coverage: none
         tools: cs2pr
     - name: Install dependencies
