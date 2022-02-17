@@ -58,7 +58,7 @@ class HttpLogger
     {
         $startTime = defined('LARAVEL_START') ? LARAVEL_START : $event->request->server('REQUEST_TIME_FLOAT');
 
-        info('foo', [
+        info('RequestHandled', [
             'ip_address' => $event->request->ip(),
             'uri' => str_replace($event->request->root(), '', $event->request->fullUrl()) ?: '/',
             'method' => $event->request->method(),

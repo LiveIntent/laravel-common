@@ -5,7 +5,6 @@ namespace LiveIntent\LaravelCommon;
 use Spatie\LaravelPackageTools\Package;
 use Illuminate\Contracts\Support\DeferrableProvider;
 use Illuminate\Database\Migrations\MigrationCreator;
-use Illuminate\Foundation\Http\Events\RequestHandled;
 use LiveIntent\LaravelCommon\Console\TestMakeCommand;
 use LiveIntent\LaravelCommon\Console\ModelMakeCommand;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
@@ -30,13 +29,6 @@ class LaravelCommonServiceProvider extends PackageServiceProvider implements Def
         $this->app->singleton('migration.creator', function ($app) {
             return new MigrationCreator($app['files'], __DIR__.'/Console/stubs');
         });
-
-        /** @psalm-suppress UndefinedClass */
-        if ($logger = config('liveintent.logging.logger')) {
-            $this->app['events']->listen(RequestHandled::class, [
-                new $logger(), 'logRequest',
-            ]);
-        }
     }
 
     /**
