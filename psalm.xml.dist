@@ -25,5 +25,10 @@
                 <referencedMethod name="Illuminate\Notifications\Notification::toMail" />
             </errorLevel>
         </UndefinedMethod>
+        <UndefinedInterfaceMethod>
+            <errorLevel type="suppress">
+                <referencedMethod name="Illuminate\Contracts\Foundation\Application::offsetGet" />
+            </errorLevel>
+        </UndefinedInterfaceMethod>
     </issueHandlers>
 </psalm>

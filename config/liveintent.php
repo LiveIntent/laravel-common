@@ -13,8 +13,8 @@ return [
     */
 
     'services' => [
-        'auth' => [
-            'url' => env('LI_AUTH_URL'),
+        'tessellate' => [
+            'url' => env('LI_TESSELLATE_URL'),
         ],
 
         'gateway' => [
@@ -25,7 +25,7 @@ return [
             'url' => env('LI_PORTAL_URL'),
         ],
 
-        'nofitications' => [
+        'notifications' => [
             'url' => env('LI_NORMANI_URL'),
         ],
     ],
@@ -40,5 +40,44 @@ return [
     | which controls the auth mechanisms your app will make use of.
     |
     */
-    'auth' => [],
+    'auth' => [
+
+        'li_token' => [
+            'public_key' => env('LI_TOKEN_PUBLIC_KEY')
+        ]
+
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | HTTP Request Logging
+    |--------------------------------------------------------------------------
+    |
+    | By default, we will log some common debug information about each of
+    | the http requests served by the application. Here, you may tweak
+    | the behavior of what is logged and hide any sensitive values.
+    |
+    */
+
+    'logging' => [
+        'logger' => \LiveIntent\LaravelCommon\Log\HttpLogger::class,
+
+        'obfuscated_request_headers' => [
+            'authorization',
+            'cookie',
+        ],
+
+        'obfuscated_request_parameters' => [],
+
+        'hidden_request_headers' => [
+            'php-auth-pw',
+        ],
+
+        'hidden_request_parameters' => [
+            'password',
+            'password_confirmation',
+        ],
+
+    ],
+
 ];
