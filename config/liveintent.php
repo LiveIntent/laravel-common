@@ -62,6 +62,11 @@ return [
     'logging' => [
         'logger' => \LiveIntent\LaravelCommon\Log\HttpLogger::class,
 
+        'ignore_paths' => [
+            'telescope*',
+            'health'
+        ],
+
         'obfuscated_request_headers' => [
             'authorization',
             'cookie',

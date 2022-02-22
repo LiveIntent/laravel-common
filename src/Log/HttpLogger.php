@@ -37,6 +37,13 @@ class HttpLogger
     private $obfuscatedRequestParameters = [];
 
     /**
+     * The list of paths to exclude from logging.
+     *
+     * @var array
+     */
+    private $ignorePaths = [];
+
+    /**
      * Create a new instance.
      *
      * @return void
@@ -47,6 +54,7 @@ class HttpLogger
         $this->hiddenRequestParameters = config('liveintent.logging.hidden_request_parameters', []);
         $this->obfuscatedRequestHeaders = config('liveintent.logging.obfuscated_request_headers', []);
         $this->obfuscatedRequestParameters = config('liveintent.logging.obfuscated_request_parameters', []);
+        $this->ignorePaths = config('liveintent.logging.ignore_paths', []);
     }
 
     /**
@@ -56,6 +64,10 @@ class HttpLogger
      */
     public function logRequest(RequestHandled $event)
     {
+        if ($event->request->is($this->ignorePaths)) {
+            return;
+        }
+
         $startTime = defined('LARAVEL_START') ? LARAVEL_START : $event->request->server('REQUEST_TIME_FLOAT');
 
         info('RequestHandled', [
