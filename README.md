@@ -6,14 +6,6 @@
 
 This package contains a collection of shared helpful utilities used across our Laravel projects.
 
-## Installation
-
-You can install the package via composer:
-
-```bash
-composer require liveintent/laravel-common
-```
-
 ## What's Included
 
 - generator stubs for quick code scaffolding
@@ -22,6 +14,68 @@ composer require liveintent/laravel-common
 - http logger
 - notification sending via normani
 - among other things
+
+## Installation
+
+You can install the package via composer:
+
+```bash
+composer require liveintent/laravel-common
+```
+
+### Logging HTTP requests
+
+In your app service provider, register the http logger.
+
+```php
+<?php
+
+namespace App\Providers;
+
+use Illuminate\Support\ServiceProvider;
+use LiveIntent\LaravelCommon\LaravelCommon;
+
+class AppServiceProvider extends ServiceProvider
+{
+    /**
+     * Register any application services.
+     *
+     * @return void
+     */
+    public function register()
+    {
+        LaravelCommon::logHttpRequests();
+    }
+}
+```
+
+### Health Checks
+
+In your app service provider, register the health checks.
+
+```php
+<?php
+
+namespace App\Providers;
+
+use Illuminate\Support\ServiceProvider;
+use LiveIntent\LaravelCommon\LaravelCommon;
+
+class AppServiceProvider extends ServiceProvider
+{
+    /**
+     * Register any application services.
+     *
+     * @return void
+     */
+    public function register()
+    {
+        LaravelCommon::healthChecks();
+    }
+}
+```
+
+This will register an http health check at '/health' and a health check for any queue workers. Additional configuration for healthchecks is available, see the implementation.
 
 ## Development
 

@@ -2,12 +2,9 @@
 
 namespace LiveIntent\LaravelCommon;
 
-use Illuminate\Support\Facades\Queue;
-use Illuminate\Support\Facades\Route;
 use Spatie\LaravelPackageTools\Package;
 use Illuminate\Contracts\Support\DeferrableProvider;
 use Illuminate\Database\Migrations\MigrationCreator;
-use Illuminate\Foundation\Http\Events\RequestHandled;
 use LiveIntent\LaravelCommon\Console\TestMakeCommand;
 use LiveIntent\LaravelCommon\Console\ModelMakeCommand;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
@@ -32,9 +29,6 @@ class LaravelCommonServiceProvider extends PackageServiceProvider implements Def
         $this->app->singleton('migration.creator', function ($app) {
             return new MigrationCreator($app['files'], __DIR__.'/Console/stubs');
         });
-
-        $this->registerHealthCheck();
-        $this->registerHttpLogger();
     }
 
     /**
@@ -71,30 +65,5 @@ class LaravelCommonServiceProvider extends PackageServiceProvider implements Def
             'command.resource.make',
             'command.test.make',
         ];
-    }
-
-    /**
-     * Register http logger
-     */
-    protected function registerHttpLogger()
-    {
-        /** @psalm-suppress UndefinedClass */
-        if ($logger = config('liveintent.logging.logger')) {
-            $this->app['events']->listen(RequestHandled::class, [
-                new $logger(), 'logRequest',
-            ]);
-        }
-    }
-
-    /**
-     * Register the health check endpoint.
-     *
-     * Override if need be by re-registering the route in your app.
-     */
-    protected function registerHealthCheck()
-    {
-        Route::get('/health', fn () => response()->json());
-
-        Queue::looping(fn () => touch('/tmp/healthcheck'));
     }
 }
