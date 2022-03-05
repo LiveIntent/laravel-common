@@ -2,7 +2,6 @@
 
 namespace LiveIntent\LaravelCommon;
 
-use Illuminate\Support\Facades\Route;
 use Spatie\LaravelPackageTools\Package;
 use Illuminate\Contracts\Support\DeferrableProvider;
 use Illuminate\Database\Migrations\MigrationCreator;
@@ -25,8 +24,6 @@ class LaravelCommonServiceProvider extends PackageServiceProvider implements Def
     public function register()
     {
         parent::register();
-
-        $this->registerHealthCheck();
 
         // override the migration's custom stub path
         $this->app->singleton('migration.creator', function ($app) {
@@ -68,15 +65,5 @@ class LaravelCommonServiceProvider extends PackageServiceProvider implements Def
             'command.resource.make',
             'command.test.make',
         ];
-    }
-
-    /**
-     * Register the health check endpoint.
-     *
-     * Override if need be by re-registering the route in your app.
-     */
-    protected function registerHealthCheck()
-    {
-        Route::get('/health', fn () => response()->json());
     }
 }
