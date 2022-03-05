@@ -2,12 +2,24 @@
 
 namespace LiveIntent\LaravelCommon;
 
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Auth\AuthServiceProvider;
 use Illuminate\Foundation\Http\Events\RequestHandled;
+use LiveIntent\LaravelCommon\Providers\LIAuthServiceProvider;
 
 class LaravelCommon
 {
+    /**
+     * Register Tessellate token authentication guard
+     */
+    public static function authGuard()
+    {
+        App::register(AuthServiceProvider::class);
+        App::register(LIAuthServiceProvider::class);
+    }
+
     /**
      * Register a logger for HTTP requests.
      *

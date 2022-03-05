@@ -41,11 +41,6 @@ return [
     |
     */
     'auth' => [
-
-        'li_token' => [
-            'public_key' => env('LI_TOKEN_PUBLIC_KEY')
-        ]
-
     ],
 
     /*
