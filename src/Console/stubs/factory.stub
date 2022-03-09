@@ -5,15 +5,11 @@ namespace {{ factoryNamespace }};
 use {{ namespacedModel }};
 use LiveIntent\LaravelCommon\Database\AbstractFactory;
 
+/**
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\{{ namespacedModel }\}>
+ */
 class {{ factory }}Factory extends AbstractFactory
 {
-    /**
-     * The name of the factory's corresponding model.
-     *
-     * @var string
-     */
-    protected $model = {{ model }}::class;
-
     /**
      * Define the model's default state.
      *
