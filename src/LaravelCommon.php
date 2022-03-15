@@ -2,12 +2,12 @@
 
 namespace LiveIntent\LaravelCommon;
 
-use Illuminate\Support\Facades\App;
+use Illuminate\Auth\RequestGuard;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Auth\AuthServiceProvider;
 use Illuminate\Foundation\Http\Events\RequestHandled;
-use LiveIntent\LaravelCommon\Providers\LIAuthServiceProvider;
+use LiveIntent\LaravelCommon\Auth\Guards\LITokenGuard;
 
 class LaravelCommon
 {
@@ -16,8 +16,16 @@ class LaravelCommon
      */
     public static function authGuard()
     {
-        App::register(AuthServiceProvider::class);
-        App::register(LIAuthServiceProvider::class);
+        Auth::extend('li_token', function ($app, $_name, array $config) {
+            throw_if($config['provider'] == null);
+
+            return new RequestGuard(function ($request) use ($config) {
+                return (new LITokenGuard(
+                    Auth::createUserProvider($config['provider']),
+                    config('auth.li_token.keys.public') ?? config('liveintent.auth.li_token.keys.public')
+                ))->user($request);
+            }, $app['request']);
+        });
     }
 
     /**

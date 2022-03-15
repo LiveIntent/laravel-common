@@ -24,11 +24,15 @@ class LITokenGuard
 
     /**
      * Create a new internal token guard instance.
+     * @throws Throwable
      */
     public function __construct(
-        private UserProvider $userProvider
+        private UserProvider $userProvider,
+        $plaintextPublicKey,
     ) {
-        $publicKey = InMemory::plainText(config('auth.li_token.keys.public'));
+        throw_if($plaintextPublicKey == null);
+
+        $publicKey = InMemory::plainText($plaintextPublicKey);
 
         $ecdsa = Sha256::create();
         $this->configuration = Configuration::forSymmetricSigner(

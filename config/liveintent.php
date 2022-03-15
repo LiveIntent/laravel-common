@@ -41,6 +41,11 @@ return [
     |
     */
     'auth' => [
+        'li_token' => [
+            'keys' => [
+                'public' => env('TESSELLATE_PUBLIC_KEY')
+            ]
+        ]
     ],
 
     /*
