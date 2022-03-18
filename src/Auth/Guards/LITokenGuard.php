@@ -28,11 +28,8 @@ class LITokenGuard
      */
     public function __construct(
         private UserProvider $userProvider,
-        $plaintextPublicKey,
     ) {
-        throw_if($plaintextPublicKey == null);
-
-        $publicKey = InMemory::plainText($plaintextPublicKey);
+        $publicKey = InMemory::plainText(config('liveintent.auth.li_token.public_key'));
 
         $ecdsa = Sha256::create();
         $this->configuration = Configuration::forSymmetricSigner(

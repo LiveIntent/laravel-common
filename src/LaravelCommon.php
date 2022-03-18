@@ -14,15 +14,12 @@ class LaravelCommon
     /**
      * Register Tessellate token authentication guard
      */
-    public static function authGuard()
+    public static function registerAuthGuard()
     {
         Auth::extend('li_token', function ($app, $_name, array $config) {
-            throw_if($config['provider'] == null);
-
             return new RequestGuard(function ($request) use ($config) {
                 return (new LITokenGuard(
-                    Auth::createUserProvider($config['provider']),
-                    config('auth.li_token.keys.public') ?? config('liveintent.auth.li_token.keys.public')
+                    Auth::createUserProvider($config['provider'])
                 ))->user($request);
             }, $app['request']);
         });
