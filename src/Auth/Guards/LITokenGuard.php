@@ -18,28 +18,12 @@ use Lcobucci\JWT\Validation\Constraint\StrictValidAt;
 class LITokenGuard
 {
     /**
-     * Configuration container for the JWT Builder and Parser.
-     */
-    private Configuration $configuration;
-
-    /**
      * Create a new internal token guard instance.
      * @throws Throwable
      */
     public function __construct(
         private UserProvider $userProvider,
     ) {
-        $publicKey = InMemory::plainText(config('liveintent.auth.li_token.public_key'));
-
-        $ecdsa = Sha256::create();
-        $this->configuration = Configuration::forSymmetricSigner(
-            $ecdsa,
-            $publicKey
-        );
-
-        $this->configuration->setValidationConstraints(
-            new SignedWith($ecdsa, $publicKey),
-        );
     }
 
     /**
@@ -62,25 +46,30 @@ class LITokenGuard
 
         $liToken = $request->bearerToken();
 
+        // Verify token
         try {
-            /** @var Plain $token */
-            $token = $this->configuration->parser()->parse($liToken);
+            $signer = Sha256::create();
+            $publicKey = InMemory::plainText(config('liveintent.auth.li_token.public_key'));
 
-            $this->configuration->validator()->assert(
+            $configuration = Configuration::forSymmetricSigner($signer, $publicKey);
+
+            /** @var Plain $token */
+            $token = $configuration->parser()->parse($liToken);
+
+            $configuration->validator()->assert(
                 $token,
                 new StrictValidAt(SystemClock::fromUTC()),
-                ...$this->configuration->validationConstraints(),
+                new SignedWith($signer, $publicKey),
             );
         } catch (Throwable $_e) {
-            // Token was not successfully authenticated
+            // Token was invalid
             return null;
         }
 
         if ($userId = $token->claims()->get('sub')) {
             return $this->userProvider->retrieveById($userId);
         }
-
-        // User not found
+        // User ID on 'sub' not found
         return null;
     }
 }
