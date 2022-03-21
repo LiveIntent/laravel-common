@@ -65,7 +65,7 @@ class MailChannel extends BaseMailChannel
      */
     protected function sendNormaniMessage(array $payload): \Illuminate\Http\Client\Response
     {
-        $url = config('liveintent.servicse.notifications.url').'/api/notifications';
+        $url = config('liveintent.services.notifications.url').'/api/notifications';
 
         return Http::post($url, $payload)->throw();
     }

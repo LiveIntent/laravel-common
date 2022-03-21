@@ -2,12 +2,29 @@
 
 namespace LiveIntent\LaravelCommon;
 
+use Illuminate\Auth\RequestGuard;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Foundation\Http\Events\RequestHandled;
+use LiveIntent\LaravelCommon\Auth\Guards\LITokenGuard;
 
 class LaravelCommon
 {
+    /**
+     * Register Tessellate token authentication guard
+     */
+    public static function registerAuthGuard()
+    {
+        Auth::extend('li_token', function ($app, $_name, array $config) {
+            return new RequestGuard(function ($request) use ($config) {
+                return (new LITokenGuard(
+                    Auth::createUserProvider($config['provider'])
+                ))->user($request);
+            }, $app['request']);
+        });
+    }
+
     /**
      * Register a logger for HTTP requests.
      *
