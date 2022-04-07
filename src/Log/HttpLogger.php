@@ -79,6 +79,7 @@ class HttpLogger
             'headers' => $this->headers($event->request->headers->all()),
             'payload' => $this->payload($this->input($event->request)),
             'session' => $this->payload($this->sessionVariables($event->request)),
+            'user_id' => $event->request->user()?->id,
             'response_status' => $event->response->getStatusCode(),
             'duration' => $startTime ? floor((microtime(true) - $startTime) * 1000) : null,
             'memory' => round(memory_get_peak_usage(true) / 1024 / 1024, 1),
