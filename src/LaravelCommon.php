@@ -6,8 +6,10 @@ use Illuminate\Auth\RequestGuard;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Route;
+use LiveIntent\LaravelCommon\Auth\LITokenGuard;
 use Illuminate\Foundation\Http\Events\RequestHandled;
-use LiveIntent\LaravelCommon\Auth\Guards\LITokenGuard;
+use LiveIntent\LaravelCommon\Auth\LITokenTransientUserProvider;
+use LiveIntent\LaravelCommon\Auth\LITokenPersistentUserProvider;
 
 class LaravelCommon
 {
@@ -18,10 +20,31 @@ class LaravelCommon
     {
         Auth::extend('li_token', function ($app, $_name, array $config) {
             return new RequestGuard(function ($request) use ($config) {
+                /** @psalm-suppress InvalidArgument */
                 return (new LITokenGuard(
                     Auth::createUserProvider($config['provider'])
                 ))->user($request);
             }, $app['request']);
+        });
+    }
+
+    /**
+     * Register the Transient user provider.
+     */
+    public static function registerTransientUserProvider()
+    {
+        Auth::provider('li_token_transient', function ($_, array $config) {
+            return new LITokenTransientUserProvider($config['model']);
+        });
+    }
+
+    /**
+     * Register the Persistent user provider.
+     */
+    public static function registerPersistentUserProvider()
+    {
+        Auth::provider('li_token_persistent', function ($_, array $config) {
+            return new LITokenPersistentUserProvider($config['model']);
         });
     }
 

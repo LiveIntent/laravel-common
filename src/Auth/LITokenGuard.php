@@ -1,16 +1,14 @@
 <?php
 
-namespace LiveIntent\LaravelCommon\Auth\Guards;
+namespace LiveIntent\LaravelCommon\Auth;
 
 use Throwable;
-use Illuminate\Support\Arr;
 use Illuminate\Http\Request;
-use Lcobucci\JWT\Token\Plain;
 use Lcobucci\Clock\SystemClock;
 use Lcobucci\JWT\Configuration;
+use Illuminate\Support\Facades\Log;
 use Lcobucci\JWT\Signer\Ecdsa\Sha256;
 use Lcobucci\JWT\Signer\Key\InMemory;
-use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Lcobucci\JWT\Validation\Constraint\SignedWith;
 use Lcobucci\JWT\Validation\Constraint\StrictValidAt;
@@ -22,7 +20,7 @@ class LITokenGuard
      * @throws Throwable
      */
     public function __construct(
-        private UserProvider $userProvider,
+        private LITokenUserProvider $userProvider,
     ) {
     }
 
@@ -34,42 +32,32 @@ class LITokenGuard
      */
     public function user(Request $request): ?Authenticatable
     {
-        // There's something funky going on where the request object is missing
-        // headers in some cases, possibly due to the use of multiple guards
-        // so we grab it directly from php and then proceed as per usual
-        $request->headers->set(
-            'authorization',
-            Arr::get(getallheaders(), 'Authorization')
-                ?: Arr::get(getallheaders(), 'authorization')
-                ?: ''
-        );
-
-        $liToken = $request->bearerToken();
-
-        // Verify token
         try {
             $signer = Sha256::create();
             $publicKey = InMemory::plainText(config('liveintent.auth.li_token.public_key'));
-
             $configuration = Configuration::forSymmetricSigner($signer, $publicKey);
 
-            /** @var Plain $token */
-            $token = $configuration->parser()->parse($liToken);
+            // After we've set up the configuration, we need to attempt to
+            // parse the raw JWT into a workable object for validation.
+            $liToken = $configuration->parser()->parse(
+                $request->bearerToken()
+            );
 
+            // We'll make some basic assertions about the token, to ensure
+            // that it is not expired and comes from a source we trust.
             $configuration->validator()->assert(
-                $token,
+                $liToken,
                 new StrictValidAt(SystemClock::fromUTC()),
                 new SignedWith($signer, $publicKey),
             );
-        } catch (Throwable $_e) {
-            // Token was invalid
+
+            // Finally, we'll use the configured user provider to retrieve
+            // an authenticatable instance so the app can work with it.
+            return $this->userProvider->retrieveByLIToken($liToken);
+        } catch (Throwable $e) {
+            Log::debug('ErrorValidatingLIToken', [ 'message' => $e->getMessage() ]);
+
             return null;
         }
-
-        if ($userId = $token->claims()->get('sub')) {
-            return $this->userProvider->retrieveById($userId);
-        }
-        // User ID on 'sub' not found
-        return null;
     }
 }

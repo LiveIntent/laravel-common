@@ -11,6 +11,7 @@
         "php": "^8.0|^8.1",
         "laravel/framework": "^9.0",
         "lcobucci/jwt": "^4.1",
+        "spatie/data-transfer-object": "^3.7",
         "spatie/laravel-package-tools": "^1.4.3"
     },
     "require-dev": {
