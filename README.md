@@ -24,11 +24,11 @@ You can install the package via composer:
 composer require liveintent/laravel-common
 ```
 
-### Addition authentication to your API
+### Adding authentication to your API
 
 LiveIntent API's usually sit behind the API Gateway. This means that when a request gets to your Laravel API, the request should come with a special, trusted JWT bearer token that identifies the user issuing the request.
 
-To allow your Laravel API to recognize the user from this LI Token, you'll need two things. First, you'll need authentication guard which verifies that the token is valid. Second, you'll need a user provider which can turn the LI Token into a workable `User` object that your API can use.
+To allow your Laravel API to recognize the user from this LI Token, you'll need two things. First, you'll need an authentication guard which verifies that the token is trusted and valid. Second, you'll need a user provider which can turn the LI Token into a workable `User` object that your API can use.
 
 Luckily, both of these are provided for you via the LaravelCommon package.
 
@@ -63,7 +63,7 @@ Now that the guard is registered, you can instruct your app to use it by editing
 ],
 ```
 
-However, please note that the default `users` provider WILL NOT WORK with the `li_token` guard, and you will need to select one of the two below user providers.
+However, please note that the default `'users'` provider WILL NOT WORK with the `'li_token'` guard, and you will need to select one of the two below user providers.
 
 #### Adding the User Provider
 
