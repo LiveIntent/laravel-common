@@ -237,6 +237,51 @@ class AppServiceProvider extends ServiceProvider
 
 This will register an http health check at '/health' and a health check for any queue workers. Additional configuration for healthchecks is available, see the implementation.
 
+### Testing
+
+#### Authentication
+
+The LaravelCommon package provides some helpers for interacting with authentication during HTTP testing, an addition to the helpers already provided by Laravel.
+
+You may instruct your test to 'login in as' a user by using one of the methods provided by the `ActsAsUsers` trait.
+
+In the example below, the endpoint we are testing requires that the user be admin.
+
+```php
+<?php
+
+namespace Tests\Feature\Api\Notification;
+
+use Tests\Feature\Api\ApiTestCase;
+use App\Models\PendingNotification;
+use LiveIntent\LaravelCommon\Testing\ActsAsUsers;
+
+class DeleteNotificationTest extends ApiTestCase
+{
+    use ActsAsUsers;
+
+    /** @test */
+    public function an_admin_user_can_delete_an_existing_notification()
+    {
+        $notification = PendingNotification::factory()->create();
+
+        $this->actingAsAdmin()
+            ->deleteJson("/api/notifications/{$notification->id}")
+            ->assertOk();
+    }
+}
+```
+
+These methods _do not_ persist users in the database. If you need to act as a user that is persisted in your database, you are free to use the `actingAs` method provided by the Laravel framework itself.
+
+Here all the available impersonation methods:
+
+| method           | description                                                 |
+|------------------|-------------------------------------------------------------|
+| actingAsStandard | logs in as a user with standard permissions (external user) |
+| actingAsInternal | logs in as an internal user who has access to all tenants   |
+| actingAsAdmin    | logs in as a special (internal) admin user                  |
+
 ## Development
 
 To develop this package clone this repository and install dependencies via:

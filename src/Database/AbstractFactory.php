@@ -4,6 +4,9 @@ namespace LiveIntent\LaravelCommon\Database;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
 
+/**
+ * @template TModel of \Illuminate\Database\Eloquent\Model
+ */
 abstract class AbstractFactory extends Factory
 {
     /**
