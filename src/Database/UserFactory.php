@@ -3,7 +3,8 @@
 namespace LiveIntent\LaravelCommon\Database;
 
 /**
- * @extends \LiveIntent\LaravelCommon\Database\AbstractFactory<\LiveIntent\LaravelCommon\Auth\User>
+ * @template TModel of \Illuminate\Database\Eloquent\Model
+ * @extends \LiveIntent\LaravelCommon\Database\AbstractFactory<TModel>
  */
 class UserFactory extends AbstractFactory
 {

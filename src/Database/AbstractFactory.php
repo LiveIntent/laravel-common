@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
  * @template TModel of \Illuminate\Database\Eloquent\Model
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<TModel>
  */
 abstract class AbstractFactory extends Factory
 {
