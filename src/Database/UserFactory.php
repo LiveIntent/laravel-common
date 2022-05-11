@@ -2,6 +2,8 @@
 
 namespace LiveIntent\LaravelCommon\Database;
 
+use LiveIntent\LaravelCommon\Auth\User;
+
 /**
  * @template TModel of \Illuminate\Database\Eloquent\Model
  * @extends \LiveIntent\LaravelCommon\Database\AbstractFactory<TModel>
@@ -16,9 +18,18 @@ class UserFactory extends AbstractFactory
     public function definition()
     {
         return [
-            'email' => $this->faker->unique()->safeEmail(),
-            'permission_type' => 'standard',
+            //
         ];
+    }
+
+    /**
+     * Configure the model factory.
+     */
+    public function configure()
+    {
+        return $this->afterCreating(function (User $user) {
+            $user->permission_type ??= 'standard';
+        });
     }
 
     /**
