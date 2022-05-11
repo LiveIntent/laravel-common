@@ -224,11 +224,11 @@ use LiveIntent\LaravelCommon\LaravelCommon;
 class AppServiceProvider extends ServiceProvider
 {
     /**
-     * Register any application services.
+     * Bootstrap any application services.
      *
      * @return void
      */
-    public function register()
+    public function boot()
     {
         LaravelCommon::healthChecks();
     }
@@ -236,6 +236,8 @@ class AppServiceProvider extends ServiceProvider
 ```
 
 This will register an http health check at '/health' and a health check for any queue workers. Additional configuration for healthchecks is available, see the implementation.
+
+Note that the health checks are registered in the `boot` method of your service provider, rather than the `register` method.
 
 ### Testing
 
