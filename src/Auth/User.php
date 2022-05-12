@@ -19,7 +19,7 @@ class User extends Authenticatable
      */
     public function isInternal()
     {
-        return $this->permission_type === 'internal';
+        return $this->permission_type === 'internal' || $this->permission_type === 'admin';
     }
 
     /**
@@ -35,6 +35,6 @@ class User extends Authenticatable
      */
     public function isExternal()
     {
-        return $this->isStandard();
+        return ! $this->isInternal();
     }
 }
