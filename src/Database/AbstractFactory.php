@@ -13,7 +13,7 @@ abstract class AbstractFactory extends Factory
     /**
      * Define the model's default state.
      *
-     * @return array
+     * @return int
      */
     public function nextId()
     {
