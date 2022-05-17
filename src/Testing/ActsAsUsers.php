@@ -6,13 +6,15 @@ use App\Models\User;
 
 trait ActsAsUsers
 {
+    use HandlesUserPersistance;
+
     /**
      * Act as user with admin permissions.
      */
     public function actingAsAdmin()
     {
-        return $this->actingAs(
-            User::factory()->asAdmin()->make()
+        return $this->makeAndImpersonate(
+            User::factory()->asAdmin()
         );
     }
 
@@ -21,8 +23,8 @@ trait ActsAsUsers
      */
     public function actingAsInternal()
     {
-        return $this->actingAs(
-            User::factory()->asInternal()->make()
+        return $this->makeAndImpersonate(
+            User::factory()->asInternal()
         );
     }
 
@@ -31,8 +33,18 @@ trait ActsAsUsers
      */
     public function actingAsStandard()
     {
+        return $this->makeAndImpersonate(
+            User::factory()->asStandard()
+        );
+    }
+
+    /**
+     * Make a new user and optionally persist it.
+     */
+    private function makeAndImpersonate($factory)
+    {
         return $this->actingAs(
-            User::factory()->asStandard()->make()
+            $factory->{$this->persistanceMethod()}()
         );
     }
 }
