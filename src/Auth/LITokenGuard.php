@@ -32,6 +32,12 @@ class LITokenGuard
      */
     public function user(Request $request): ?Authenticatable
     {
+        if (! $bearerToken = $request->bearerToken()) {
+            Log::debug('NoBearerTokenPresent');
+
+            return null;
+        }
+
         try {
             $signer = Sha256::create();
             $publicKey = InMemory::plainText(config('liveintent.auth.li_token.public_key'));
@@ -40,7 +46,7 @@ class LITokenGuard
             // After we've set up the configuration, we need to attempt to
             // parse the raw JWT into a workable object for validation.
             $liToken = $configuration->parser()->parse(
-                $request->bearerToken()
+                $bearerToken
             );
 
             // We'll make some basic assertions about the token, to ensure
