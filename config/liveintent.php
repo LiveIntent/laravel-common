@@ -1,6 +1,7 @@
 <?php
 
 return [
+
     /*
     |--------------------------------------------------------------------------
     | LiveIntent Services
@@ -40,12 +41,11 @@ return [
     | which controls the auth mechanisms your app will make use of.
     |
     */
+
     'auth' => [
         'li_token' => [
-            'public_key' => env('TESSELLATE_PUBLIC_KEY'),
+            'public_key' => env('TESSELLATE_PUBLIC_KEY', ''),
         ],
-
-        'personal_access_token' => env('LI_PERSONAL_ACCESS_TOKEN'),
     ],
 
     /*
@@ -56,7 +56,6 @@ return [
     | By default, we will log some common debug information about each of
     | the http requests served by the application. Here, you may tweak
     | the behavior of what is logged and hide any sensitive values.
-    |
     */
 
     'logging' => [
@@ -64,7 +63,7 @@ return [
 
         'ignore_paths' => [
             'telescope*',
-            'health'
+            'health',
         ],
 
         'obfuscated_request_headers' => [
@@ -82,7 +81,35 @@ return [
             'password',
             'password_confirmation',
         ],
-
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Client
+    |--------------------------------------------------------------------------
+    |
+    | For your convenience, LiveIntent offers a wrapper PHP SDK that lets
+    | you abstract away most of the boring parts of interacting with a
+    | third party api. This section configures the client defaults.
+    |
+    */
+
+    'client' => [
+        // static token to use for authenticating requests
+        'personal_access_token' => env('LI_PERSONAL_ACCESS_TOKEN'),
+
+        // number of default retries per request
+        'tries' => 3,
+
+        // number of seconds to wait for a response before hangup
+        'timeout' => 10,
+
+        // number of seconds to wait between retries
+        'retryDelay' => 10,
+
+        // base url of the api
+        'base_url' => env('LI_GATEWAY_URL', ''),
+    ]
+
 ];
+
