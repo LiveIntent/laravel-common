@@ -44,6 +44,8 @@ return [
         'li_token' => [
             'public_key' => env('TESSELLATE_PUBLIC_KEY'),
         ],
+
+        'personal_access_token' => env('LI_PERSONAL_ACCESS_TOKEN'),
     ],
 
     /*
