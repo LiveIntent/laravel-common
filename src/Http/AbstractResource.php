@@ -6,7 +6,6 @@ use ReflectionClass;
 use Spatie\QueryBuilder\QueryBuilder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
-use Orion\Contracts\QueryBuilder as Orion;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use LiveIntent\LaravelCommon\Http\Exceptions\InvalidResourceModelException;
@@ -14,6 +13,7 @@ use Orion\Drivers\Standard\SearchBuilder;
 use Orion\Drivers\Standard\ParamsValidator;
 use Orion\Drivers\Standard\RelationsResolver;
 use Orion\Http\Requests\Request as OrionRequest;
+use Spatie\QueryBuilder\AllowedSort;
 
 abstract class AbstractResource extends JsonResource
 {
@@ -23,6 +23,16 @@ abstract class AbstractResource extends JsonResource
      * @var string
      */
     protected static $model;
+
+    /**
+     * The mapping between external field names and internal field names.
+     *
+     * @return array
+     */
+    public function fieldMappings()
+    {
+        return [];
+    }
 
     /**
      * The allowed sortable fields for the resource.
@@ -165,16 +175,28 @@ abstract class AbstractResource extends JsonResource
         // have access to some of the vital instance methods
         $resource = (new ReflectionClass(static::class))->newInstanceWithoutConstructor();
 
-        $paramsValidator = new ParamsValidator([], ['name']);
+        $paramsValidator = new ParamsValidator(
+            ['withTrashed'],
+            collect($resource->allowedFilters())->map->getName()->toArray(),
+            collect($resource->allowedSorts())->map(function ($sort) {
+                if (is_string($sort)) {
+                    return AllowedSort::field($sort);
+                }
+
+                return $sort;
+            })->map->getName()->toArray()
+        );
+
         $searchBuilder = new SearchBuilder([]);
         $relationsResolver = new RelationsResolver([], []);
 
-        $builder = app()->make(Orion::class, [
+        $builder = app()->make(FilterQueryBuilder::class, [
             'resourceModelClass' => $modelClass,
             'paramsValidator' => $paramsValidator,
             'relationsResolver' => $relationsResolver,
             'searchBuilder' => $searchBuilder,
-            'intermediateMode' => false
+            'intermediateMode' => false,
+            'allowedSorts' => $resource->allowedSorts()
         ]);
 
         $query = $builder->buildQuery($modelClass::query(), OrionRequest::createFrom($request));
