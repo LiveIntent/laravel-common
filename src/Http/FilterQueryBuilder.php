@@ -41,7 +41,7 @@ class FilterQueryBuilder extends OrionFilterQueryBuilder
      */
     private $intermediateMode;
 
-    private $allowedSorts;
+    private $resource;
 
     /**
      * @inheritDoc
@@ -52,14 +52,14 @@ class FilterQueryBuilder extends OrionFilterQueryBuilder
         \Orion\Contracts\RelationsResolver $relationsResolver,
         \Orion\Contracts\SearchBuilder $searchBuilder,
         bool $intermediateMode = false,
-        $allowedSorts = []
+        $resource = null,
     ) {
         $this->resourceModelClass = $resourceModelClass;
         $this->paramsValidator = $paramsValidator;
         $this->relationsResolver = $relationsResolver;
         $this->searchBuilder = $searchBuilder;
         $this->intermediateMode = $intermediateMode;
-        $this->allowedSorts = $allowedSorts;
+        $this->resource = $resource;
     }
 
     /**
@@ -115,6 +115,9 @@ class FilterQueryBuilder extends OrionFilterQueryBuilder
     {
         if (!$filterDescriptors) {
             $this->paramsValidator->validateFilters($request);
+            // how to get the objs from the req? or otherwise
+            // i think pass in the allowed things as full hydrated objs
+            // and then we pluck from request and map it back to the internal name
             $filterDescriptors = $request->get('filters', []);
         }
 
@@ -321,6 +324,12 @@ class FilterQueryBuilder extends OrionFilterQueryBuilder
     public function getQualifiedFieldName(string $field): string
     {
         $table = (new $this->resourceModelClass)->getTable();
+        $found = collect($this->resource->allowedFilters())->where(function ($f) use ($field) {
+            return $f->getName() === $field;
+        })->first();
+
+        $field = $found ? $found->getInternalName() : $field;
+
         return "{$table}.{$field}";
     }
 
@@ -411,7 +420,7 @@ class FilterQueryBuilder extends OrionFilterQueryBuilder
         $sortableDescriptors = $request->get('sort', []);
 
         foreach ($sortableDescriptors as $sortable) {
-            $found = collect($this->allowedSorts)->where(function ($sort) use ($sortable) {
+            $found = collect($this->resource->allowedSorts())->where(function ($sort) use ($sortable) {
                 if (!is_string($sort)) {
                     return $sort->getName() === $sortable['field'];
                 }

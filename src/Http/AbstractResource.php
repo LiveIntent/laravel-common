@@ -25,11 +25,19 @@ abstract class AbstractResource extends JsonResource
     protected static $model;
 
     /**
-     * The mapping between external field names and internal field names.
+     * The fields to use when performing full text search.
+     */
+    public function searchableBy()
+    {
+        return [];
+    }
+
+    /**
+     * The allowed query scopes for the resource.
      *
      * @return array
      */
-    public function fieldMappings()
+    public function allowedScopes()
     {
         return [];
     }
@@ -187,7 +195,7 @@ abstract class AbstractResource extends JsonResource
             })->map->getName()->toArray()
         );
 
-        $searchBuilder = new SearchBuilder([]);
+        $searchBuilder = new SearchBuilder($resource->searchableBy());
         $relationsResolver = new RelationsResolver([], []);
 
         $builder = app()->make(FilterQueryBuilder::class, [
@@ -196,7 +204,7 @@ abstract class AbstractResource extends JsonResource
             'relationsResolver' => $relationsResolver,
             'searchBuilder' => $searchBuilder,
             'intermediateMode' => false,
-            'allowedSorts' => $resource->allowedSorts()
+            'resource' => $resource
         ]);
 
         $query = $builder->buildQuery($modelClass::query(), OrionRequest::createFrom($request));
