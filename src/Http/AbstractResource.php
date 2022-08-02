@@ -184,7 +184,13 @@ abstract class AbstractResource extends JsonResource
         $resource = (new ReflectionClass(static::class))->newInstanceWithoutConstructor();
 
         $paramsValidator = new ParamsValidator(
-            ['withDeactivated'],
+            collect($resource->allowedScopes())->map(function ($scope) {
+                if (is_string($scope)) {
+                    return AllowedScope::name($scope);
+                }
+
+                return $scope;
+            })->map->getName()->toArray(),
             collect($resource->allowedFilters())->map->getName()->toArray(),
             collect($resource->allowedSorts())->map(function ($sort) {
                 if (is_string($sort)) {
