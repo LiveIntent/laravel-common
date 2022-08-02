@@ -99,7 +99,16 @@ class FilterQueryBuilder extends OrionFilterQueryBuilder
         $scopeDescriptors = $request->get('scopes', []);
 
         foreach ($scopeDescriptors as $scopeDescriptor) {
-            $query->{$scopeDescriptor['name']}(...Arr::get($scopeDescriptor, 'parameters', []));
+            $found = collect($this->resource->allowedScopes())->where(function ($scope) use ($scopeDescriptor) {
+                if (!is_string($scope)) {
+                    return $scope->getName() === $scopeDescriptor['name'];
+                }
+
+                return $scope === $scopeDescriptor['name'];
+            })->first();
+
+            $name = $found ? $found->getInternalName() : $scopeDescriptor['name'];
+            $query->$name(...Arr::get($scopeDescriptor, 'parameters', []));
         }
     }
 
