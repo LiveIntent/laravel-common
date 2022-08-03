@@ -3,17 +3,20 @@
 namespace LiveIntent\LaravelCommon\Tests;
 
 use Orchestra\Testbench\TestCase as Orchestra;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use LiveIntent\LaravelCommon\LaravelCommonServiceProvider;
 
 class TestCase extends Orchestra
 {
+    use RefreshDatabase;
+
     public function setUp(): void
     {
         parent::setUp();
 
         Factory::guessFactoryNamesUsing(
-            fn (string $modelName) => 'LiveIntent\\LaravelCommon\\Database\\Factories\\'.class_basename($modelName).'Factory'
+            fn (string $modelName) => 'LiveIntent\\LaravelCommon\\Tests\\Fixtures\\Database\\Factories\\'.class_basename($modelName).'Factory'
         );
     }
 
@@ -22,6 +25,11 @@ class TestCase extends Orchestra
         return [
             LaravelCommonServiceProvider::class,
         ];
+    }
+
+    protected function defineDatabaseMigrations()
+    {
+        $this->loadMigrationsFrom(__DIR__ . '/Fixtures/database/migrations');
     }
 
     public function getEnvironmentSetUp($app)

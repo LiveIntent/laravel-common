@@ -244,4 +244,12 @@ abstract class AbstractResource extends JsonResource
 
         return static::collection($collection);
     }
+
+    /**
+     * Get the model class that the resource transforms.
+     */
+    public function getModel()
+    {
+        return static::$model;
+    }
 }

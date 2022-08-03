@@ -1,6 +1,6 @@
 <?php
 
-namespace LiveIntent\LaravelCommon\Http;
+namespace LiveIntent\LaravelCommon\Http\Resources;
 
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -10,11 +10,12 @@ use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Arr;
 use JsonException;
-use Orion\Http\Requests\Request;
+use Illuminate\Http\Request;
+use LiveIntent\LaravelCommon\Http\AbstractResource;
 use RuntimeException;
 use Orion\Drivers\Standard\QueryBuilder as OrionFilterQueryBuilder;
 
-class FilterQueryBuilder extends OrionFilterQueryBuilder
+class SearchQueryBuilder
 {
     /**
      * @var string $resourceModelClass
@@ -47,15 +48,14 @@ class FilterQueryBuilder extends OrionFilterQueryBuilder
      * @inheritDoc
      */
     public function __construct(
-        string $resourceModelClass,
-        \Orion\Contracts\ParamsValidator $paramsValidator,
-        \Orion\Contracts\RelationsResolver $relationsResolver,
-        \Orion\Contracts\SearchBuilder $searchBuilder,
+        AbstractResource $resource,
+        // \Orion\Contracts\ParamsValidator $paramsValidator,
+        RelationsResolver $relationsResolver,
+        FullTextSearchBuilder $searchBuilder,
         bool $intermediateMode = false,
-        $resource = null,
     ) {
-        $this->resourceModelClass = $resourceModelClass;
-        $this->paramsValidator = $paramsValidator;
+        $this->resourceModelClass = $resource->getModel();
+        // $this->paramsValidator = $paramsValidator;
         $this->relationsResolver = $relationsResolver;
         $this->searchBuilder = $searchBuilder;
         $this->intermediateMode = $intermediateMode;
@@ -95,7 +95,7 @@ class FilterQueryBuilder extends OrionFilterQueryBuilder
      */
     public function applyScopesToQuery($query, Request $request): void
     {
-        $this->paramsValidator->validateScopes($request);
+        // $this->paramsValidator->validateScopes($request);
         $scopeDescriptors = $request->get('scopes', []);
 
         foreach ($scopeDescriptors as $scopeDescriptor) {
@@ -123,7 +123,7 @@ class FilterQueryBuilder extends OrionFilterQueryBuilder
     public function applyFiltersToQuery($query, Request $request, array $filterDescriptors = []): void
     {
         if (!$filterDescriptors) {
-            $this->paramsValidator->validateFilters($request);
+            // $this->paramsValidator->validateFilters($request);
             // how to get the objs from the req? or otherwise
             // i think pass in the allowed things as full hydrated objs
             // and then we pluck from request and map it back to the internal name
@@ -354,7 +354,7 @@ class FilterQueryBuilder extends OrionFilterQueryBuilder
             return;
         }
 
-        $this->paramsValidator->validateSearch($request);
+        // $this->paramsValidator->validateSearch($request);
 
         $searchables = $this->searchBuilder->searchableBy();
 
@@ -425,7 +425,7 @@ class FilterQueryBuilder extends OrionFilterQueryBuilder
      */
     public function applySortingToQuery($query, Request $request): void
     {
-        $this->paramsValidator->validateSort($request);
+        // $this->paramsValidator->validateSort($request);
         $sortableDescriptors = $request->get('sort', []);
 
         foreach ($sortableDescriptors as $sortable) {

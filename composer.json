@@ -17,7 +17,7 @@
         "brianium/paratest": "^6.2",
         "liveintent/php-cs-fixer": "^3.0",
         "nunomaduro/collision": "^6.1",
-        "orchestra/testbench": "^7.0",
+        "orchestra/testbench": "^7.6",
         "phpunit/phpunit": "^9.5",
         "vimeo/psalm": "^4.18"
     },
@@ -29,7 +29,8 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "LiveIntent\\LaravelCommon\\Tests\\": "tests"
+            "LiveIntent\\LaravelCommon\\Tests\\": "tests",
+            "LiveIntent\\LaravelCommon\\Tests\\Fixtures\\Database\\Factories\\": "tests/Fixtures/database/factories/"
         }
     },
     "scripts": {
