@@ -19,8 +19,8 @@ use LiveIntent\LaravelCommon\Tests\TestCase;
 use Orion\Drivers\Standard\QueryBuilder;
 use Orion\Drivers\Standard\SearchBuilder;
 use LiveIntent\LaravelCommon\Tests\Fixtures\App\Models\Post;
+use LiveIntent\LaravelCommon\Tests\Fixtures\App\Models\User;
 use Orion\Tests\Fixtures\App\Models\Team;
-use Orion\Tests\Fixtures\App\Models\User;
 use Orion\Drivers\Standard\ParamsValidator;
 use Orion\Tests\Unit\Drivers\Standard\Stubs\ControllerStub;
 
@@ -142,7 +142,7 @@ class SearchQueryBuilderTest extends TestCase
     }
 
     /** @test */
-    public function applying_model_level_fields_filters_with_multiple_values()
+    public function fields_are_filterable_with_multiple_values()
     {
         $postA = Post::factory()->create(['title' => 'test post', 'tracking_id' => 1]);
         $postB = Post::factory()->create(['title' => 'another test post', 'tracking_id' => 5]);
@@ -189,42 +189,56 @@ class SearchQueryBuilderTest extends TestCase
         $this->assertFalse($results->contains('id', $postD->id));
     }
 
-    // /** @test */
-    // public function applying_relation_level_fields_filters_with_singular_values()
-    // {
-    //     $request = $this->makeRequestWithFilters(
-    //         [
-    //             ['field' => 'user.name', 'operator' => '=', 'value' => 'test user A'],
-    //             ['type' => 'or', 'field' => 'user.name', 'operator' => '=', 'value' => 'test user B'],
-    //         ]
-    //     );
+    /** @test */
+    public function applying_relation_level_fields_filters_with_singular_values()
+    {
+        $postAUser = User::factory()->create(['name' => 'test user A']);
+        $postA = Post::factory()->for($postAUser)->create();
 
-    //     $postAUser = factory(User::class)->create(['name' => 'test user A']);
-    //     $postA = factory(Post::class)->create(['user_id' => $postAUser->id]);
+        $postBUser = User::factory()->create(['name' => 'test user B']);
+        $postB = Post::factory()->for($postBUser)->create();
 
-    //     $postBUser = factory(User::class)->create(['name' => 'test user B']);
-    //     $postB = factory(Post::class)->create(['user_id' => $postBUser->id]);
+        $postCUser = User::factory()->create(['name' => 'test user C']);
+        $postC = Post::factory()->for($postCUser)->create();
 
-    //     $postCUser = factory(User::class)->create(['name' => 'test user C']);
-    //     $postC = factory(Post::class)->create(['user_id' => $postCUser->id]);
+        $resource = new class (null) extends AbstractResource {
+            protected static $model = Post::class;
 
-    //     $query = Post::query();
+            public function allowedFilters()
+            {
+                return [
+                    AllowedFilter::string('user.name'),
+                    AllowedFilter::string('user.aliasedName', 'user.name'),
+                ];
+            }
+        };
 
-    //     $queryBuilder = new QueryBuilder(
-    //         Post::class,
-    //         new ParamsValidator([], ['user.name']),
-    //         new RelationsResolver([], []),
-    //         new SearchBuilder([])
-    //     );
-    //     $queryBuilder->applyFiltersToQuery($query, $request);
+        $request = tap(new Request(), function ($req) {
+            $req->query->set(
+                'filters',
+                [
+                    ['field' => 'user.aliasedName', 'operator' => '=', 'value' => 'test user A'],
+                    ['type' => 'or', 'field' => 'user.name', 'operator' => '=', 'value' => 'test user B'],
+                ]
+            );
+        });
 
-    //     $posts = $query->get();
+        $queryBuilder = new SearchRequestQueryBuilder(
+            $resource,
+            new RelationsResolver([], []),
+            new FullTextSearchBuilder([])
+        );
 
-    //     $this->assertCount(2, $posts);
-    //     $this->assertTrue($posts->contains('id', $postA->id));
-    //     $this->assertTrue($posts->contains('id', $postB->id));
-    //     $this->assertFalse($posts->contains('id', $postC->id));
-    // }
+        $results = tap(
+            Post::query(),
+            fn ($query) => $queryBuilder->applyFiltersToQuery($query, $request)
+        )->get();
+
+        $this->assertCount(2, $results);
+        $this->assertTrue($results->contains('id', $postA->id));
+        $this->assertTrue($results->contains('id', $postB->id));
+        $this->assertFalse($results->contains('id', $postC->id));
+    }
 
     // /** @test */
     // public function applying_relation_level_fields_filters_with_multiple_values()
