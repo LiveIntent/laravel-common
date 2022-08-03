@@ -38,11 +38,6 @@ class SearchRequestQueryBuilder
     private $relationsResolver;
 
     /**
-     * @var \Orion\Contracts\SearchBuilder $searchBuilder
-     */
-    private $searchBuilder;
-
-    /**
      * @var bool $intermediateMode
      */
     private $intermediateMode;
@@ -56,13 +51,11 @@ class SearchRequestQueryBuilder
         AbstractResource $resource,
         // \Orion\Contracts\ParamsValidator $paramsValidator,
         RelationsResolver $relationsResolver,
-        FullTextSearchBuilder $searchBuilder,
         bool $intermediateMode = false,
     ) {
         $this->resourceModelClass = $resource->getModel();
         // $this->paramsValidator = $paramsValidator;
         $this->relationsResolver = $relationsResolver;
-        $this->searchBuilder = $searchBuilder;
         $this->intermediateMode = $intermediateMode;
         $this->resource = $resource;
     }
@@ -381,7 +374,7 @@ class SearchRequestQueryBuilder
 
         // $this->paramsValidator->validateSearch($request);
 
-        $searchables = $this->searchBuilder->searchableBy();
+        $searchables = $this->resource->searchableBy();
 
         $query->where(
             function ($whereQuery) use ($searchables, $requestedSearchDescriptor) {

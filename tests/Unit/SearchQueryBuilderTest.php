@@ -55,11 +55,7 @@ class SearchQueryBuilderTest extends TestCase
             );
         });
 
-        $queryBuilder = new SearchRequestQueryBuilder(
-            $resource,
-            new RelationsResolver([], []),
-            new FullTextSearchBuilder([])
-        );
+        $queryBuilder = new SearchRequestQueryBuilder($resource, new RelationsResolver([], []));
 
         $results = tap(
             Post::query(),
@@ -86,11 +82,7 @@ class SearchQueryBuilderTest extends TestCase
             }
         };
 
-        $queryBuilder = new SearchRequestQueryBuilder(
-            $resource,
-            new RelationsResolver([], []),
-            new FullTextSearchBuilder([])
-        );
+        $queryBuilder = new SearchRequestQueryBuilder($resource, new RelationsResolver([], []));
 
         $queryBuilder->applyScopesToQuery(Post::query(), new Request());
     }
@@ -124,11 +116,7 @@ class SearchQueryBuilderTest extends TestCase
             );
         });
 
-        $queryBuilder = new SearchRequestQueryBuilder(
-            $resource,
-            new RelationsResolver([], []),
-            new FullTextSearchBuilder([])
-        );
+        $queryBuilder = new SearchRequestQueryBuilder($resource, new RelationsResolver([], []));
 
         $results = tap(
             Post::query(),
@@ -171,11 +159,7 @@ class SearchQueryBuilderTest extends TestCase
             );
         });
 
-        $queryBuilder = new SearchRequestQueryBuilder(
-            $resource,
-            new RelationsResolver([], []),
-            new FullTextSearchBuilder([])
-        );
+        $queryBuilder = new SearchRequestQueryBuilder($resource, new RelationsResolver([], []));
 
         $results = tap(
             Post::query(),
@@ -223,11 +207,7 @@ class SearchQueryBuilderTest extends TestCase
             );
         });
 
-        $queryBuilder = new SearchRequestQueryBuilder(
-            $resource,
-            new RelationsResolver([], []),
-            new FullTextSearchBuilder([])
-        );
+        $queryBuilder = new SearchRequestQueryBuilder($resource, new RelationsResolver([], []));
 
         $results = tap(
             Post::query(),
@@ -274,11 +254,7 @@ class SearchQueryBuilderTest extends TestCase
             );
         });
 
-        $queryBuilder = new SearchRequestQueryBuilder(
-            $resource,
-            new RelationsResolver([], []),
-            new FullTextSearchBuilder([])
-        );
+        $queryBuilder = new SearchRequestQueryBuilder($resource, new RelationsResolver([], []));
 
         $results = tap(
             Post::query(),
@@ -318,11 +294,7 @@ class SearchQueryBuilderTest extends TestCase
             );
         });
 
-        $queryBuilder = new SearchRequestQueryBuilder(
-            $resource,
-            new RelationsResolver([], []),
-            new FullTextSearchBuilder([])
-        );
+        $queryBuilder = new SearchRequestQueryBuilder($resource, new RelationsResolver([], []));
 
         $results = tap(
             Post::query(),
@@ -363,11 +335,7 @@ class SearchQueryBuilderTest extends TestCase
             );
         });
 
-        $queryBuilder = new SearchRequestQueryBuilder(
-            $resource,
-            new RelationsResolver([], []),
-            new FullTextSearchBuilder([])
-        );
+        $queryBuilder = new SearchRequestQueryBuilder($resource, new RelationsResolver([], []));
 
         $results = tap(
             Post::query(),
@@ -408,11 +376,7 @@ class SearchQueryBuilderTest extends TestCase
             );
         });
 
-        $queryBuilder = new SearchRequestQueryBuilder(
-            $resource,
-            new RelationsResolver([], []),
-            new FullTextSearchBuilder([])
-        );
+        $queryBuilder = new SearchRequestQueryBuilder($resource, new RelationsResolver([], []));
 
         $results = tap(
             Post::query(),
@@ -425,97 +389,96 @@ class SearchQueryBuilderTest extends TestCase
         $this->assertFalse($results->contains('id', $postC->id));
     }
 
-    // /** @test */
-    // public function searching_on_model_fields()
-    // {
-    //     $request = $this->makeRequestWithSearch(
-    //         [
-    //             'value' => 'example',
-    //         ]
-    //     );
+    /** @test */
+    public function full_text_search_can_be_done_on_specified_fields()
+    {
+        $postA = Post::factory()->create(['title' => 'title example']);
+        $postB = Post::factory()->create(['title' => 'example title']);
+        $postC = Post::factory()->create(['title' => 'title with example in the middle']);
+        $postD = Post::factory()->create(['title' => 'not matching title', 'body' => 'but matching example body']);
+        $postE = Post::factory()->create(['title' => 'not matching title']);
 
-    //     $postA = factory(Post::class)->create(['title' => 'title example']);
-    //     $postB = factory(Post::class)->create(['title' => 'example title']);
-    //     $postC = factory(Post::class)->create(['title' => 'title with example in the middle']);
-    //     $postD = factory(Post::class)->create(['title' => 'not matching title', 'body' => 'but matching example body']);
-    //     $postE = factory(Post::class)->create(['title' => 'not matching title']);
+        $resource = new class (null) extends AbstractResource {
+            protected static $model = Post::class;
 
-    //     $query = Post::query();
+            public function searchableBy()
+            {
+                return [
+                    'title', 'body'
+                ];
+            }
+        };
 
-    //     $queryBuilder = new QueryBuilder(
-    //         Post::class,
-    //         new ParamsValidator([], []),
-    //         new RelationsResolver([], []),
-    //         new SearchBuilder(['title', 'body'])
-    //     );
-    //     $queryBuilder->applySearchingToQuery($query, $request);
+        $request = tap(new Request(), function ($req) {
+            $req->query->set(
+                'search', ['value' => 'example'],
+            );
+        });
 
-    //     $posts = $query->get();
+        $queryBuilder = new SearchRequestQueryBuilder($resource, new RelationsResolver([], []));
 
-    //     $this->assertCount(4, $posts);
-    //     $this->assertTrue($posts->contains('id', $postA->id));
-    //     $this->assertTrue($posts->contains('id', $postB->id));
-    //     $this->assertTrue($posts->contains('id', $postC->id));
-    //     $this->assertTrue($posts->contains('id', $postD->id));
-    //     $this->assertFalse($posts->contains('id', $postE->id));
-    // }
+        $results = tap(
+            Post::query(),
+            fn ($query) => $queryBuilder->applySearchingToQuery($query, $request)
+        )->get();
 
-    // protected function makeRequestWithSearch(array $search)
-    // {
-    //     $request = new Request();
-    //     $request->setRouteResolver(
-    //         function () {
-    //             return new Route('GET', '/api/tags', [ControllerStub::class, 'index']);
-    //         }
-    //     );
-    //     $request->query->set('search', $search);
+        $this->assertCount(4, $results);
+        $this->assertTrue($results->contains('id', $postA->id));
+        $this->assertTrue($results->contains('id', $postB->id));
+        $this->assertTrue($results->contains('id', $postC->id));
+        $this->assertTrue($results->contains('id', $postD->id));
+        $this->assertFalse($results->contains('id', $postE->id));
+    }
 
-    //     return $request;
-    // }
+    /** @test */
+    public function full_text_search_can_be_done_on_specified_related_fields()
+    {
+        $postAUser = User::factory()->create(['name' => 'name example']);
+        $postA = Post::factory()->for($postAUser)->create();
 
-    // /** @test */
-    // public function searching_on_relation_fields()
-    // {
-    //     $request = $this->makeRequestWithSearch(
-    //         [
-    //             'value' => 'example',
-    //         ]
-    //     );
+        $postBUser = User::factory()->create(['name' => 'example name']);
+        $postB = Post::factory()->for($postBUser)->create();
 
-    //     $postAUser = factory(User::class)->create(['name' => 'name example']);
-    //     $postA = factory(Post::class)->create(['user_id' => $postAUser->id]);
+        $postCUser = User::factory()->create(['name' => 'name with example in the middle']);
+        $postC = Post::factory()->for($postCUser)->create();
 
-    //     $postBUser = factory(User::class)->create(['name' => 'example name']);
-    //     $postB = factory(Post::class)->create(['user_id' => $postBUser->id]);
+        $postDUser = User::factory()->create(['name' => 'not matching name', 'email' => 'but-matching-email@example.com']);
+        $postD = Post::factory()->for($postDUser)->create();
 
-    //     $postCUser = factory(User::class)->create(['name' => 'name with example in the middle']);
-    //     $postC = factory(Post::class)->create(['user_id' => $postCUser->id]);
+        $postEUser = User::factory()->create(['name' => 'not matching name', 'email' => 'test@domain.com']);
+        $postE = Post::factory()->for($postEUser)->create();
 
-    //     $postDUser = factory(User::class)->create(['name' => 'not matching name', 'email' => 'but-matching-email@example.com']);
-    //     $postD = factory(Post::class)->create(['user_id' => $postDUser->id]);
+        $resource = new class (null) extends AbstractResource {
+            protected static $model = Post::class;
 
-    //     $postEUser = factory(User::class)->create(['name' => 'not matching name', 'email' => 'test@domain.com']);
-    //     $postE = factory(Post::class)->create(['user_id' => $postEUser->id]);
+            public function searchableBy()
+            {
+                return [
+                    'user.name', 'user.email'
+                ];
+            }
+        };
 
-    //     $query = Post::query();
+        $request = tap(new Request(), function ($req) {
+            $req->query->set(
+                'search', ['value' => 'example'],
+            );
+        });
 
-    //     $queryBuilder = new QueryBuilder(
-    //         Post::class,
-    //         new ParamsValidator([], []),
-    //         new RelationsResolver([], []),
-    //         new SearchBuilder(['user.name', 'user.email'])
-    //     );
-    //     $queryBuilder->applySearchingToQuery($query, $request);
+        $queryBuilder = new SearchRequestQueryBuilder($resource, new RelationsResolver([], []));
 
-    //     $posts = $query->get();
+        $results = tap(
+            Post::query(),
+            fn ($query) => $queryBuilder->applySearchingToQuery($query, $request)
+        )->get();
 
-    //     $this->assertCount(4, $posts);
-    //     $this->assertTrue($posts->contains('id', $postA->id));
-    //     $this->assertTrue($posts->contains('id', $postB->id));
-    //     $this->assertTrue($posts->contains('id', $postC->id));
-    //     $this->assertTrue($posts->contains('id', $postD->id));
-    //     $this->assertFalse($posts->contains('id', $postE->id));
-    // }
+        $this->assertCount(4, $results);
+        $this->assertTrue($results->contains('id', $postA->id));
+        $this->assertTrue($results->contains('id', $postB->id));
+        $this->assertTrue($results->contains('id', $postC->id));
+        $this->assertTrue($results->contains('id', $postD->id));
+        $this->assertFalse($results->contains('id', $postE->id));
+    }
 
     // /** @test */
     // public function search_query_constraints_are_not_applied_if_descriptor_is_missing_in_request()
@@ -629,13 +592,13 @@ class SearchQueryBuilderTest extends TestCase
     //     );
 
     //     $postAUser = factory(User::class)->create(['name' => 'user A']);
-    //     $postA = factory(Post::class)->create(['user_id' => $postAUser->id]);
+    //     $postA = factory(Post://:class)->forUser()->create();
 
     //     $postBUser = factory(User::class)->create(['name' => 'user B']);
-    //     $postB = factory(Post::class)->create(['user_id' => $postBUser->id]);
+    //     $postB = factory(Post://:class)->forUser()->create();
 
     //     $postCUser = factory(User::class)->create(['name' => 'user C']);
-    //     $postC = factory(Post::class)->create(['user_id' => $postCUser->id]);
+    //     $postC = factory(Post://:class)->forUser()->create();
 
     //     $query = Post::query();
 
@@ -664,13 +627,13 @@ class SearchQueryBuilderTest extends TestCase
     //     );
 
     //     $postAUser = factory(User::class)->create(['name' => 'user A']);
-    //     $postA = factory(Post::class)->create(['user_id' => $postAUser->id]);
+    //     $postA = factory(Post://:class)->forUser()->create();
 
     //     $postBUser = factory(User::class)->create(['name' => 'user B']);
-    //     $postB = factory(Post::class)->create(['user_id' => $postBUser->id]);
+    //     $postB = factory(Post://:class)->forUser()->create();
 
     //     $postCUser = factory(User::class)->create(['name' => 'user C']);
-    //     $postC = factory(Post::class)->create(['user_id' => $postCUser->id]);
+    //     $postC = factory(Post://:class)->forUser()->create();
 
     //     $query = Post::query();
 
