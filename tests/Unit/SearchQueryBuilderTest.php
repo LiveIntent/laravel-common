@@ -6,12 +6,14 @@ use Mockery;
 use Illuminate\Routing\Route;
 use Illuminate\Http\Request;
 use LiveIntent\LaravelCommon\Http\AbstractResource;
+use LiveIntent\LaravelCommon\Http\AllowedScope;
+use LiveIntent\LaravelCommon\Http\Exceptions\InvalidResourceScopeException;
 use LiveIntent\LaravelCommon\Http\Resources\FullTextSearchBuilder;
 use LiveIntent\LaravelCommon\Http\Resources\RelationsResolver;
 // use Orion\Http\Requests\Request;
 //
 
-use LiveIntent\LaravelCommon\Http\Resources\SearchQueryBuilder;
+use LiveIntent\LaravelCommon\Http\Resources\SearchRequestQueryBuilder;
 use LiveIntent\LaravelCommon\Tests\TestCase;
 use Orion\Drivers\Standard\QueryBuilder;
 use Orion\Drivers\Standard\SearchBuilder;
@@ -24,41 +26,72 @@ use Orion\Tests\Unit\Drivers\Standard\Stubs\ControllerStub;
 class SearchQueryBuilderTest extends TestCase
 {
     /** @test */
-    public function applying_scopes_to_query()
+    public function scopes_can_be_applied_to_the_query()
     {
         $postA = Post::factory()->create(['publish_at' => '2019-01-01 09:35:14']);
-        $postB = Post::factory()->create(['publish_at' => '2020-02-01 09:35:14']);
-        $postC = Post::factory()->create();
+        $postB = Post::factory()->create(['publish_at' => '2019-01-01 09:35:14', 'meta' => 'verse']);
+        $postC = Post::factory()->create(['publish_at' => '2020-02-01 09:35:14']);
 
         $resource = new class (null) extends AbstractResource {
             protected static $model = Post::class;
+
+            public function allowedScopes()
+            {
+                return [
+                    AllowedScope::name('specialMetaAliasName', 'withMeta'),
+                    AllowedScope::name('publishedAt'),
+                ];
+            }
         };
 
         $request = tap(new Request(), function ($req) {
             $req->query->set(
                 'scopes',
                 [
-                    ['name' => 'published'],
+                    ['name' => 'specialMetaAliasName'],
                     ['name' => 'publishedAt', 'parameters' => ['2019-01-01 09:35:14']],
                 ]
             );
         });
 
-        $query = Post::query();
-
-        // searchrequestquerybuilder
-        $queryBuilder = new SearchQueryBuilder(
+        $queryBuilder = new SearchRequestQueryBuilder(
             $resource,
-            // new ParamsValidator(['published', 'publishedAt']),
             new RelationsResolver([], []),
             new FullTextSearchBuilder([])
         );
-        $queryBuilder->applyScopesToQuery($query, $request);
 
-        $posts = $query->get();
+        $results = tap(
+            Post::query(),
+            fn ($query) => $queryBuilder->applyScopesToQuery($query, $request)
+        )->get();
 
-        $this->assertCount(1, $posts);
-        $this->assertSame($postA->id, $posts->first()->id);
+        $this->assertCount(1, $results);
+        $this->assertEquals($postB->id, $results->first()->id);
+    }
+
+    /** @test */
+    public function allowed_scopes_must_be_valid_instances()
+    {
+        $this->expectException(InvalidResourceScopeException::class);
+
+        $resource = new class (null) extends AbstractResource {
+            protected static $model = Post::class;
+
+            public function allowedScopes()
+            {
+                return [
+                    'publishedAt'
+                ];
+            }
+        };
+
+        $queryBuilder = new SearchRequestQueryBuilder(
+            $resource,
+            new RelationsResolver([], []),
+            new FullTextSearchBuilder([])
+        );
+
+        $queryBuilder->applyScopesToQuery(Post::query(), new Request());
     }
 
     // /** @test */

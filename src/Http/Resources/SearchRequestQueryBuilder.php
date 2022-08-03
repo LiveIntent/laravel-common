@@ -12,10 +12,12 @@ use Illuminate\Support\Arr;
 use JsonException;
 use Illuminate\Http\Request;
 use LiveIntent\LaravelCommon\Http\AbstractResource;
+use LiveIntent\LaravelCommon\Http\AllowedScope;
 use RuntimeException;
 use Orion\Drivers\Standard\QueryBuilder as OrionFilterQueryBuilder;
+use LiveIntent\LaravelCommon\Http\Exceptions\InvalidResourceScopeException;
 
-class SearchQueryBuilder
+class SearchRequestQueryBuilder
 {
     /**
      * @var string $resourceModelClass
@@ -95,20 +97,24 @@ class SearchQueryBuilder
      */
     public function applyScopesToQuery($query, Request $request): void
     {
+        $allowedScopes = collect($this->resource->allowedScopes())
+            ->each(function ($allowedScope) {
+                if (! $allowedScope instanceof AllowedScope) {
+                    throw new InvalidResourceScopeException($allowedScope);
+                }
+            })
+            ->keyBy
+            ->getName();
+
+        $scopeDescriptors = collect($request->get('scopes', []))
+            ->map(fn ($scope) => $allowedScopes->get($scope['name'])?->withArgs($scope['parameters'] ?? []))
+            ->filter();
+
         // $this->paramsValidator->validateScopes($request);
-        $scopeDescriptors = $request->get('scopes', []);
+        // $scopeDescriptors = $request->get('scopes', []);
 
         foreach ($scopeDescriptors as $scopeDescriptor) {
-            $found = collect($this->resource->allowedScopes())->where(function ($scope) use ($scopeDescriptor) {
-                if (!is_string($scope)) {
-                    return $scope->getName() === $scopeDescriptor['name'];
-                }
-
-                return $scope === $scopeDescriptor['name'];
-            })->first();
-
-            $name = $found ? $found->getInternalName() : $scopeDescriptor['name'];
-            $query->$name(...Arr::get($scopeDescriptor, 'parameters', []));
+            $query->{$scopeDescriptor->getInternalName()}(...$scopeDescriptor->getArgs());
         }
     }
 
