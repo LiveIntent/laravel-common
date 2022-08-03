@@ -10,7 +10,7 @@ class InvalidResourceScopeException extends Exception
     /**
      * Create a new instance.
      *
-     * @param mixed $model
+     * @param mixed $scope
      */
     public function __construct($scope)
     {

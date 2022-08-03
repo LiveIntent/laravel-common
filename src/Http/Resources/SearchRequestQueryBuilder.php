@@ -13,9 +13,12 @@ use JsonException;
 use Illuminate\Http\Request;
 use LiveIntent\LaravelCommon\Http\AbstractResource;
 use LiveIntent\LaravelCommon\Http\AllowedScope;
+use LiveIntent\LaravelCommon\Http\AllowedFilter;
 use RuntimeException;
 use Orion\Drivers\Standard\QueryBuilder as OrionFilterQueryBuilder;
 use LiveIntent\LaravelCommon\Http\Exceptions\InvalidResourceScopeException;
+use LiveIntent\LaravelCommon\Http\Exceptions\InvalidResourceFilterException;
+use LiveIntent\LaravelCommon\Http\Exceptions\OperatorNotAllowedException;
 
 class SearchRequestQueryBuilder
 {
@@ -110,9 +113,6 @@ class SearchRequestQueryBuilder
             ->map(fn ($scope) => $allowedScopes->get($scope['name'])?->withArgs($scope['parameters'] ?? []))
             ->filter();
 
-        // $this->paramsValidator->validateScopes($request);
-        // $scopeDescriptors = $request->get('scopes', []);
-
         foreach ($scopeDescriptors as $scopeDescriptor) {
             $query->{$scopeDescriptor->getInternalName()}(...$scopeDescriptor->getArgs());
         }
@@ -128,13 +128,32 @@ class SearchRequestQueryBuilder
      */
     public function applyFiltersToQuery($query, Request $request, array $filterDescriptors = []): void
     {
-        if (!$filterDescriptors) {
-            // $this->paramsValidator->validateFilters($request);
-            // how to get the objs from the req? or otherwise
-            // i think pass in the allowed things as full hydrated objs
-            // and then we pluck from request and map it back to the internal name
-            $filterDescriptors = $request->get('filters', []);
-        }
+        $allowedFilters = collect($this->resource->allowedFilters())
+            ->each(function ($allowedFilter) {
+                if (! $allowedFilter instanceof AllowedFilter) {
+                    throw new InvalidResourceFilterException($allowedFilter);
+                }
+            })
+            ->keyBy
+            ->getName();
+
+        $filterDescriptors = collect($filterDescriptors ?: $request->get('filters', []))
+            ->map(function ($filter) use ($allowedFilters) {
+                if (!$allowedFilter = $allowedFilters->get($filter['field'] ?? '')) {
+                    return null;
+                }
+
+                $filter['operator'] ??= '=';
+                if (!in_array($filter['operator'], $allowedFilter->getAllowedOperators())) {
+                    throw OperatorNotAllowedException::make($filter['field'], $filter['operator']);
+                }
+
+                $internalName = $allowedFilter?->getInternalName();
+                $filter['field'] = $internalName;
+
+                return $filter;
+            })
+            ->filter();
 
         foreach ($filterDescriptors as $filterDescriptor) {
             $or = Arr::get($filterDescriptor, 'type', 'and') === 'or';

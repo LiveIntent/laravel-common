@@ -6,6 +6,7 @@ use Mockery;
 use Illuminate\Routing\Route;
 use Illuminate\Http\Request;
 use LiveIntent\LaravelCommon\Http\AbstractResource;
+use LiveIntent\LaravelCommon\Http\AllowedFilter;
 use LiveIntent\LaravelCommon\Http\AllowedScope;
 use LiveIntent\LaravelCommon\Http\Exceptions\InvalidResourceScopeException;
 use LiveIntent\LaravelCommon\Http\Resources\FullTextSearchBuilder;
@@ -94,37 +95,51 @@ class SearchQueryBuilderTest extends TestCase
         $queryBuilder->applyScopesToQuery(Post::query(), new Request());
     }
 
-    // /** @test */
-    // public function applying_model_level_fields_filters_with_singular_values()
-    // {
-    //     $request = $this->makeRequestWithFilters(
-    //         [
-    //             ['field' => 'title', 'operator' => '=', 'value' => 'test post'],
-    //             ['type' => 'or', 'field' => 'tracking_id', 'operator' => '=', 'value' => 5],
-    //         ]
-    //     );
+    /** @test */
+    public function fields_are_filterable_with_single_values()
+    {
+        $postA = Post::factory()->create(['title' => 'test post', 'tracking_id' => 1]);
+        $postB = Post::factory()->create(['title' => 'another test post', 'tracking_id' => 5]);
+        $postC = Post::factory()->create(['title' => 'different post', 'tracking_id' => 10]);
 
-    //     $postA = factory(Post::class)->create(['title' => 'test post', 'tracking_id' => 1]);
-    //     $postB = factory(Post::class)->create(['title' => 'another test post', 'tracking_id' => 5]);
-    //     $postC = factory(Post::class)->create(['title' => 'different post', 'tracking_id' => 10]);
+        $resource = new class (null) extends AbstractResource {
+            protected static $model = Post::class;
 
-    //     $query = Post::query();
+            public function allowedFilters()
+            {
+                return [
+                    AllowedFilter::string('myTitleAlias', 'title'),
+                    AllowedFilter::number('tracking_id'),
+                ];
+            }
+        };
 
-    //     $queryBuilder = new QueryBuilder(
-    //         Post::class,
-    //         new ParamsValidator([], ['title', 'tracking_id']),
-    //         new RelationsResolver([], []),
-    //         new SearchBuilder([])
-    //     );
-    //     $queryBuilder->applyFiltersToQuery($query, $request);
+        $request = tap(new Request(), function ($req) {
+            $req->query->set(
+                'filters',
+                [
+                    ['field' => 'myTitleAlias', 'operator' => '=', 'value' => 'test post'],
+                    ['type' => 'or', 'field' => 'tracking_id', 'operator' => '=', 'value' => 5],
+                ]
+            );
+        });
 
-    //     $posts = $query->get();
+        $queryBuilder = new SearchRequestQueryBuilder(
+            $resource,
+            new RelationsResolver([], []),
+            new FullTextSearchBuilder([])
+        );
 
-    //     $this->assertCount(2, $posts);
-    //     $this->assertTrue($posts->contains('id', $postA->id));
-    //     $this->assertTrue($posts->contains('id', $postB->id));
-    //     $this->assertFalse($posts->contains('id', $postC->id));
-    // }
+        $results = tap(
+            Post::query(),
+            fn ($query) => $queryBuilder->applyFiltersToQuery($query, $request)
+        )->get();
+
+        $this->assertCount(2, $results);
+        $this->assertTrue($results->contains('id', $postA->id));
+        $this->assertTrue($results->contains('id', $postB->id));
+        $this->assertFalse($results->contains('id', $postC->id));
+    }
 
     // protected function makeRequestWithFilters(array $filters)
     // {
