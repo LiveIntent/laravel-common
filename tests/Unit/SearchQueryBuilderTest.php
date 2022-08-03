@@ -141,50 +141,53 @@ class SearchQueryBuilderTest extends TestCase
         $this->assertFalse($results->contains('id', $postC->id));
     }
 
-    // protected function makeRequestWithFilters(array $filters)
-    // {
-    //     $request = new Request();
-    //     $request->setRouteResolver(
-    //         function () {
-    //             return new Route('GET', '/api/tags', [ControllerStub::class, 'index']);
-    //         }
-    //     );
-    //     $request->query->set('filters', $filters);
+    /** @test */
+    public function applying_model_level_fields_filters_with_multiple_values()
+    {
+        $postA = Post::factory()->create(['title' => 'test post', 'tracking_id' => 1]);
+        $postB = Post::factory()->create(['title' => 'another test post', 'tracking_id' => 5]);
+        $postC = Post::factory()->create(['title' => 'different post', 'tracking_id' => 10]);
+        $postD = Post::factory()->create(['title' => 'different post', 'tracking_id' => 15]);
 
-    //     return $request;
-    // }
+        $resource = new class (null) extends AbstractResource {
+            protected static $model = Post::class;
 
-    // /** @test */
-    // public function applying_model_level_fields_filters_with_multiple_values()
-    // {
-    //     $request = $this->makeRequestWithFilters(
-    //         [
-    //             ['field' => 'title', 'operator' => 'in', 'value' => ['test post', 'something else']],
-    //             ['type' => 'or', 'field' => 'tracking_id', 'operator' => 'in', 'value' => [5, 10]],
-    //         ]
-    //     );
+            public function allowedFilters()
+            {
+                return [
+                    AllowedFilter::string('title'),
+                    AllowedFilter::number('tracking_id'),
+                ];
+            }
+        };
 
-    //     $postA = factory(Post::class)->create(['title' => 'test post', 'tracking_id' => 1]);
-    //     $postB = factory(Post::class)->create(['title' => 'another test post', 'tracking_id' => 10]);
-    //     $postC = factory(Post::class)->create(['title' => 'different post', 'tracking_id' => 15]);
+        $request = tap(new Request(), function ($req) {
+            $req->query->set(
+                'filters',
+                [
+                    ['field' => 'title', 'operator' => 'in', 'value' => ['test post', 'something else']],
+                    ['type' => 'or', 'field' => 'tracking_id', 'operator' => 'in', 'value' => [5, 10]],
+                ]
+            );
+        });
 
-    //     $query = Post::query();
+        $queryBuilder = new SearchRequestQueryBuilder(
+            $resource,
+            new RelationsResolver([], []),
+            new FullTextSearchBuilder([])
+        );
 
-    //     $queryBuilder = new QueryBuilder(
-    //         Post::class,
-    //         new ParamsValidator([], ['title', 'tracking_id']),
-    //         new RelationsResolver([], []),
-    //         new SearchBuilder([])
-    //     );
-    //     $queryBuilder->applyFiltersToQuery($query, $request);
+        $results = tap(
+            Post::query(),
+            fn ($query) => $queryBuilder->applyFiltersToQuery($query, $request)
+        )->get();
 
-    //     $tags = $query->get();
-
-    //     $this->assertCount(2, $tags);
-    //     $this->assertTrue($tags->contains('id', $postA->id));
-    //     $this->assertTrue($tags->contains('id', $postB->id));
-    //     $this->assertFalse($tags->contains('id', $postC->id));
-    // }
+        $this->assertCount(3, $results);
+        $this->assertTrue($results->contains('id', $postA->id));
+        $this->assertTrue($results->contains('id', $postB->id));
+        $this->assertTrue($results->contains('id', $postC->id));
+        $this->assertFalse($results->contains('id', $postD->id));
+    }
 
     // /** @test */
     // public function applying_relation_level_fields_filters_with_singular_values()

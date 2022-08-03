@@ -55,7 +55,7 @@ class AllowedFilter implements Aliasable
     public static function string(string $name, ?string $internalName = null)
     {
         return new static($name, $internalName, [
-            '=', '!='
+            '=', '!=', 'in', 'not in'
         ]);
     }
 
@@ -65,7 +65,7 @@ class AllowedFilter implements Aliasable
     public static function number(string $name, ?string $internalName = null)
     {
         return new static($name, $internalName, [
-            '=', '!='
+            '=', '!=', 'in', 'not in'
         ]);
     }
 }
