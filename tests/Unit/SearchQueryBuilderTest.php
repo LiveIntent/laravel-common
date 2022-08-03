@@ -291,36 +291,139 @@ class SearchQueryBuilderTest extends TestCase
         $this->assertTrue($results->contains('id', $postC->id));
     }
 
-    // /** @test */
-    // public function applying_filters_with_not_in_operator()
-    // {
-    //     $request = $this->makeRequestWithFilters(
-    //         [
-    //             ['field' => 'title', 'operator' => 'not in', 'value' => ['test post A', 'test post B']],
-    //         ]
-    //     );
+    /** @test */
+    public function fields_are_filterable_with_the_not_in_operator()
+    {
+        $postA = Post::factory()->create(['title' => 'test post A']);
+        $postB = Post::factory()->create(['title' => 'test post B']);
+        $postC = Post::factory()->create(['title' => 'test post C']);
 
-    //     $postA = factory(Post::class)->create(['title' => 'test post A']);
-    //     $postB = factory(Post::class)->create(['title' => 'test post B']);
-    //     $postC = factory(Post::class)->create(['title' => 'test post C']);
+        $resource = new class (null) extends AbstractResource {
+            protected static $model = Post::class;
 
-    //     $query = Post::query();
+            public function allowedFilters()
+            {
+                return [
+                    AllowedFilter::string('title'),
+                ];
+            }
+        };
 
-    //     $queryBuilder = new QueryBuilder(
-    //         Post::class,
-    //         new ParamsValidator([], ['title']),
-    //         new RelationsResolver([], []),
-    //         new SearchBuilder([])
-    //     );
-    //     $queryBuilder->applyFiltersToQuery($query, $request);
+        $request = tap(new Request(), function ($req) {
+            $req->query->set(
+                'filters',
+                [
+                    ['field' => 'title', 'operator' => 'not in', 'value' => ['test post A', 'test post B']],
+                ]
+            );
+        });
 
-    //     $posts = $query->get();
+        $queryBuilder = new SearchRequestQueryBuilder(
+            $resource,
+            new RelationsResolver([], []),
+            new FullTextSearchBuilder([])
+        );
 
-    //     $this->assertCount(1, $posts);
-    //     $this->assertFalse($posts->contains('id', $postA->id));
-    //     $this->assertFalse($posts->contains('id', $postB->id));
-    //     $this->assertTrue($posts->contains('id', $postC->id));
-    // }
+        $results = tap(
+            Post::query(),
+            fn ($query) => $queryBuilder->applyFiltersToQuery($query, $request)
+        )->get();
+
+        $this->assertCount(1, $results);
+        $this->assertFalse($results->contains('id', $postA->id));
+        $this->assertFalse($results->contains('id', $postB->id));
+        $this->assertTrue($results->contains('id', $postC->id));
+    }
+
+    /** @test */
+    public function fields_are_filterable_with_the_like_and_not_like_operators()
+    {
+        $postA = Post::factory()->create(['title' => 'test post A']);
+        $postB = Post::factory()->create(['title' => 'test post B']);
+        $postC = Post::factory()->create(['title' => 'test post C']);
+
+        $resource = new class (null) extends AbstractResource {
+            protected static $model = Post::class;
+
+            public function allowedFilters()
+            {
+                return [
+                    AllowedFilter::string('title'),
+                ];
+            }
+        };
+
+        $request = tap(new Request(), function ($req) {
+            $req->query->set(
+                'filters',
+                [
+                    ['field' => 'title', 'operator' => 'like', 'value' => 'test post%'],
+                    ['field' => 'title', 'operator' => 'not like', 'value' => '%B%'],
+                ]
+            );
+        });
+
+        $queryBuilder = new SearchRequestQueryBuilder(
+            $resource,
+            new RelationsResolver([], []),
+            new FullTextSearchBuilder([])
+        );
+
+        $results = tap(
+            Post::query(),
+            fn ($query) => $queryBuilder->applyFiltersToQuery($query, $request)
+        )->get();
+
+        $this->assertCount(2, $results);
+        $this->assertTrue($results->contains('id', $postA->id));
+        $this->assertFalse($results->contains('id', $postB->id));
+        $this->assertTrue($results->contains('id', $postC->id));
+    }
+
+    /** @test */
+    public function fields_are_filterable_with_the_inequality_operators()
+    {
+        $postA = Post::factory()->create(['publish_at' => '2019-01-01 09:35:14']);
+        $postB = Post::factory()->create(['publish_at' => '2019-01-02 09:35:14']);
+        $postC = Post::factory()->create(['publish_at' => '2019-01-03 09:35:14']);
+
+        $resource = new class (null) extends AbstractResource {
+            protected static $model = Post::class;
+
+            public function allowedFilters()
+            {
+                return [
+                    AllowedFilter::timestamp('publish_at'),
+                ];
+            }
+        };
+
+        $request = tap(new Request(), function ($req) {
+            $req->query->set(
+                'filters',
+                [
+                    ['field' => 'publish_at', 'operator' => '>', 'value' => '2019-01-01'],
+                    ['field' => 'publish_at', 'operator' => '<=', 'value' => '2019-01-03 08:00:00'],
+                ]
+            );
+        });
+
+        $queryBuilder = new SearchRequestQueryBuilder(
+            $resource,
+            new RelationsResolver([], []),
+            new FullTextSearchBuilder([])
+        );
+
+        $results = tap(
+            Post::query(),
+            fn ($query) => $queryBuilder->applyFiltersToQuery($query, $request)
+        )->get();
+
+        $this->assertCount(2, $results);
+        $this->assertTrue($results->contains('id', $postA->id));
+        $this->assertTrue($results->contains('id', $postB->id));
+        $this->assertFalse($results->contains('id', $postC->id));
+    }
 
     // /** @test */
     // public function searching_on_model_fields()

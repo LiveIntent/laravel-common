@@ -12,7 +12,7 @@ class AllowedFilter implements Aliasable
     /** @var string */
     protected $internalName;
 
-    /** @var string */
+    /** @var array */
     protected $allowedOperators;
 
     /**
@@ -55,7 +55,7 @@ class AllowedFilter implements Aliasable
     public static function string(string $name, ?string $internalName = null)
     {
         return new static($name, $internalName, [
-            '=', '!=', 'in', 'not in'
+            '=', '!=', 'in', 'not in', '>', '>=', '<', '<=', 'like', 'not like'
         ]);
     }
 
@@ -65,7 +65,17 @@ class AllowedFilter implements Aliasable
     public static function number(string $name, ?string $internalName = null)
     {
         return new static($name, $internalName, [
-            '=', '!=', 'in', 'not in'
+            '=', '!=', 'in', 'not in', '>', '>=', '<', '<='
+        ]);
+    }
+
+    /**
+     * Create a new allowed filter for a timestamp field.
+     */
+    public static function timestamp(string $name, ?string $internalName = null)
+    {
+        return new static($name, $internalName, [
+            '=', '!=', 'in', 'not in', '>', '>=', '<', '<='
         ]);
     }
 }
