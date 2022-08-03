@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 use LiveIntent\LaravelCommon\Http\AbstractResource;
 use LiveIntent\LaravelCommon\Http\AllowedScope;
 use LiveIntent\LaravelCommon\Http\AllowedFilter;
+use LiveIntent\LaravelCommon\Http\AllowedSort;
 use RuntimeException;
 use Orion\Drivers\Standard\QueryBuilder as OrionFilterQueryBuilder;
 use LiveIntent\LaravelCommon\Http\Exceptions\InvalidResourceScopeException;
@@ -443,19 +444,30 @@ class SearchRequestQueryBuilder
      */
     public function applySortingToQuery($query, Request $request): void
     {
-        // $this->paramsValidator->validateSort($request);
-        $sortableDescriptors = $request->get('sort', []);
+        $allowedSorts = collect($this->resource->allowedSorts())
+            ->each(function ($allowedSort) {
+                if (! $allowedSort instanceof AllowedSort) {
+                    throw new InvalidResourceFilterException($allowedSort);
+                }
+            })
+            ->keyBy
+            ->getName();
+
+        $sortableDescriptors = collect($request->get('sort', []))
+            ->map(function ($sort) use ($allowedSorts) {
+                if (!$allowedSort = $allowedSorts->get($sort['field'])) {
+                    return null;
+                }
+
+                $sort['field'] = $allowedSort?->getInternalName();
+
+                return $sort;
+            })
+            ->filter();
 
         foreach ($sortableDescriptors as $sortable) {
-            $found = collect($this->resource->allowedSorts())->where(function ($sort) use ($sortable) {
-                if (!is_string($sort)) {
-                    return $sort->getName() === $sortable['field'];
-                }
-            })->first();
-
-            $sortableField = $found ? $found->getInternalName() : $sortable['field'];
-
             $direction = Arr::get($sortable, 'direction', 'asc');
+            $sortableField = $sortable['field'];
 
             if (strpos($sortableField, '.') !== false) {
                 $relation = $this->relationsResolver->relationFromParamConstraint($sortableField);

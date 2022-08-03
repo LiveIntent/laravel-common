@@ -7,6 +7,7 @@ use Illuminate\Routing\Route;
 use Illuminate\Http\Request;
 use LiveIntent\LaravelCommon\Http\AbstractResource;
 use LiveIntent\LaravelCommon\Http\AllowedFilter;
+use LiveIntent\LaravelCommon\Http\AllowedSort;
 use LiveIntent\LaravelCommon\Http\AllowedScope;
 use LiveIntent\LaravelCommon\Http\Exceptions\InvalidResourceScopeException;
 use LiveIntent\LaravelCommon\Http\Resources\FullTextSearchBuilder;
@@ -480,64 +481,81 @@ class SearchQueryBuilderTest extends TestCase
         $this->assertFalse($results->contains('id', $postE->id));
     }
 
-    // /** @test */
-    // public function search_query_constraints_are_not_applied_if_descriptor_is_missing_in_request()
-    // {
-    //     $request = new Request();
-    //     $request->setRouteResolver(
-    //         function () {
-    //             return new Route('GET', '/api/posts', [ControllerStub::class, 'index']);
-    //         }
-    //     );
+    /** @test */
+    public function sort_can_be_applied_on_model_fields()
+    {
+        $postC = Post::factory()->create(['title' => 'post C']);
+        $postB = Post::factory()->create(['title' => 'post B']);
+        $postA = Post::factory()->create(['title' => 'post A']);
 
-    //     factory(Post::class)->times(3)->create(['title' => 'not matching']);
+        $resource = new class (null) extends AbstractResource {
+            protected static $model = Post::class;
 
-    //     $query = Post::query();
+            public function allowedSorts()
+            {
+                return [
+                    AllowedSort::field('title')
+                ];
+            }
+        };
 
-    //     $queryBuilder = new QueryBuilder(
-    //         Post::class,
-    //         new ParamsValidator([], []),
-    //         new RelationsResolver([], []),
-    //         new SearchBuilder(['title', 'body'])
-    //     );
-    //     $queryBuilder->applySearchingToQuery($query, $request);
+        $request = tap(new Request(), function ($req) {
+            $req->query->set(
+                'sort', [
+                    ['field' => 'title'],
+                ]
+            );
+        });
 
-    //     $posts = $query->get();
+        $queryBuilder = new SearchRequestQueryBuilder($resource, new RelationsResolver([], []));
 
-    //     $this->assertCount(3, $posts);
-    // }
+        $results = tap(
+            Post::query(),
+            fn ($query) => $queryBuilder->applySortingToQuery($query, $request)
+        )->get();
 
-    // //TODO: test sorting on different relation types
+        $this->assertEquals($postA->id, $results[0]->id);
+        $this->assertEquals($postB->id, $results[1]->id);
+        $this->assertEquals($postC->id, $results[2]->id);
+    }
 
-    // /** @test */
-    // public function default_sorting_based_on_model_fields()
-    // {
-    //     $request = $this->makeRequestWithSort(
-    //         [
-    //             ['field' => 'title'],
-    //         ]
-    //     );
+    /** @test */
+    public function sort_can_be_applied_in_reverse_on_model_fields()
+    {
+        $postA = Post::factory()->create(['title' => 'post A']);
+        $postB = Post::factory()->create(['title' => 'post B']);
+        $postC = Post::factory()->create(['title' => 'post C']);
 
-    //     $postA = factory(Post::class)->create(['title' => 'post A']);
-    //     $postB = factory(Post::class)->create(['title' => 'post B']);
-    //     $postC = factory(Post::class)->create(['title' => 'post C']);
+        $resource = new class (null) extends AbstractResource {
+            protected static $model = Post::class;
 
-    //     $query = Post::query();
+            public function allowedSorts()
+            {
+                return [
+                    AllowedSort::field('title')
+                ];
+            }
+        };
 
-    //     $queryBuilder = new QueryBuilder(
-    //         Post::class,
-    //         new ParamsValidator([], [], ['title']),
-    //         new RelationsResolver([], []),
-    //         new SearchBuilder([])
-    //     );
-    //     $queryBuilder->applySortingToQuery($query, $request);
+        $request = tap(new Request(), function ($req) {
+            $req->query->set(
+                'sort', [
+                    ['field' => 'title', 'direction' => 'desc'],
+                ]
+            );
+        });
 
-    //     $posts = $query->get();
+        $queryBuilder = new SearchRequestQueryBuilder($resource, new RelationsResolver([], []));
 
-    //     $this->assertEquals($postA->id, $posts[0]->id);
-    //     $this->assertEquals($postB->id, $posts[1]->id);
-    //     $this->assertEquals($postC->id, $posts[2]->id);
-    // }
+        $results = tap(
+            Post::query(),
+            fn ($query) => $queryBuilder->applySortingToQuery($query, $request)
+        )->get();
+
+        $this->assertEquals($postC->id, $results[0]->id);
+        $this->assertEquals($postB->id, $results[1]->id);
+        $this->assertEquals($postA->id, $results[2]->id);
+    }
 
     // protected function makeRequestWithSort(array $sort)
     // {
