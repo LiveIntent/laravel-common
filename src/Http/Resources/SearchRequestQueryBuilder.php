@@ -3,62 +3,52 @@
 namespace LiveIntent\LaravelCommon\Http\Resources;
 
 use Carbon\Carbon;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\MorphTo;
-use Illuminate\Database\Eloquent\Relations\Relation;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Arr;
 use JsonException;
+use RuntimeException;
+use Illuminate\Support\Arr;
 use Illuminate\Http\Request;
-use LiveIntent\LaravelCommon\Http\AbstractResource;
+use Illuminate\Database\Eloquent\Builder;
+use LiveIntent\LaravelCommon\Http\AllowedSort;
 use LiveIntent\LaravelCommon\Http\AllowedScope;
 use LiveIntent\LaravelCommon\Http\AllowedFilter;
-use LiveIntent\LaravelCommon\Http\AllowedSort;
-use RuntimeException;
-use Orion\Drivers\Standard\QueryBuilder as OrionFilterQueryBuilder;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
+use LiveIntent\LaravelCommon\Http\AbstractResource;
+use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use LiveIntent\LaravelCommon\Http\Exceptions\OperatorNotAllowedException;
 use LiveIntent\LaravelCommon\Http\Exceptions\InvalidResourceScopeException;
 use LiveIntent\LaravelCommon\Http\Exceptions\InvalidResourceFilterException;
-use LiveIntent\LaravelCommon\Http\Exceptions\OperatorNotAllowedException;
 
+/**
+ * 99% of this code is taken directly from https://github.com/tailflow/laravel-orion/blob/main/src/Drivers/Standard/QueryBuilder.php
+ * with just a few modifications to rely less on the setup of orion and more on our
+ * eloquent resource object.
+ */
 class SearchRequestQueryBuilder
 {
     /**
-     * @var string $resourceModelClass
+     * The resource to search for.
      */
-    private $resourceModelClass;
+    private AbstractResource $resource;
 
     /**
-     * @var \Orion\Contracts\ParamsValidator $paramsValidator
+     * The model class of the resource.
      */
-    private $paramsValidator;
+    private string $resourceModelClass;
 
     /**
-     * @var \Orion\Contracts\RelationsResolver $relationsResolver
+     * Relation resolver helper.
      */
-    private $relationsResolver;
-
-    /**
-     * @var bool $intermediateMode
-     */
-    private $intermediateMode;
-
-    private $resource;
+    private RelationsResolver $relationsResolver;
 
     /**
      * @inheritDoc
      */
-    public function __construct(
-        AbstractResource $resource,
-        // \Orion\Contracts\ParamsValidator $paramsValidator,
-        RelationsResolver $relationsResolver,
-        bool $intermediateMode = false,
-    ) {
-        $this->resourceModelClass = $resource->getModel();
-        // $this->paramsValidator = $paramsValidator;
-        $this->relationsResolver = $relationsResolver;
-        $this->intermediateMode = $intermediateMode;
+    public function __construct(AbstractResource $resource, RelationsResolver $relationsResolver)
+    {
         $this->resource = $resource;
+        $this->relationsResolver = $relationsResolver;
+        $this->resourceModelClass = $resource->getModel();
     }
 
     /**
@@ -71,16 +61,10 @@ class SearchRequestQueryBuilder
      */
     public function buildQuery($query, Request $request)
     {
-        $actionMethod = $request->route()->getActionMethod();
-
-        if (!$this->intermediateMode && in_array($actionMethod, ['index', 'search', 'show'])) {
-            if ($actionMethod === 'search') {
-                $this->applyScopesToQuery($query, $request);
-                $this->applyFiltersToQuery($query, $request);
-                $this->applySearchingToQuery($query, $request);
-                $this->applySortingToQuery($query, $request);
-            }
-        }
+        $this->applyScopesToQuery($query, $request);
+        $this->applyFiltersToQuery($query, $request);
+        $this->applySearchingToQuery($query, $request);
+        $this->applySortingToQuery($query, $request);
 
         return $query;
     }
@@ -136,12 +120,12 @@ class SearchRequestQueryBuilder
                     return $filter;
                 }
 
-                if (!$allowedFilter = $allowedFilters->get($filter['field'] ?? '')) {
+                if (! $allowedFilter = $allowedFilters->get($filter['field'] ?? '')) {
                     return null;
                 }
 
                 $filter['operator'] ??= '=';
-                if (!in_array($filter['operator'], $allowedFilter->getAllowedOperators())) {
+                if (! in_array($filter['operator'], $allowedFilter->getAllowedOperators())) {
                     throw OperatorNotAllowedException::make($filter['field'], $filter['operator']);
                 }
 
@@ -156,7 +140,9 @@ class SearchRequestQueryBuilder
             $or = Arr::get($filterDescriptor, 'type', 'and') === 'or';
 
             if (is_array($childrenDescriptors = Arr::get($filterDescriptor, 'nested'))) {
-                $query->{$or ? 'orWhere' : 'where'}(function ($query) use ($request, $childrenDescriptors) { $this->applyFiltersToQuery($query, $request, $childrenDescriptors); });
+                $query->{$or ? 'orWhere' : 'where'}(function ($query) use ($request, $childrenDescriptors) {
+                    $this->applyFiltersToQuery($query, $request, $childrenDescriptors);
+                });
             } elseif (strpos($filterDescriptor['field'], '.') !== false) {
                 $relation = $this->relationsResolver->relationFromParamConstraint($filterDescriptor['field']);
                 $relationField = $this->relationsResolver->relationFieldFromParamConstraint($filterDescriptor['field']);
@@ -199,7 +185,7 @@ class SearchRequestQueryBuilder
 
             $filterDescriptor['value'] = collect($filterDescriptor['value'])->filter()->values()->toArray();
 
-            if (!count($filterDescriptor['value'])) {
+            if (! count($filterDescriptor['value'])) {
                 return $query;
             }
         }
@@ -222,7 +208,7 @@ class SearchRequestQueryBuilder
         bool $or = false
     ) {
         $treatAsDateField = $filterDescriptor['value'] !== null &&
-            in_array($filterDescriptor['field'], (new $this->resourceModelClass)->getDates(), true);
+            in_array($filterDescriptor['field'], (new $this->resourceModelClass())->getDates(), true);
 
         if ($treatAsDateField && Carbon::parse($filterDescriptor['value'])->toTimeString() === '00:00:00') {
             $constraint = 'whereDate';
@@ -232,16 +218,16 @@ class SearchRequestQueryBuilder
             $constraint = 'where';
         }
 
-        if ($constraint !== 'whereJsonContains' && (!is_array(
-                    $filterDescriptor['value']
-                ) || $constraint === 'whereDate')) {
+        if ($constraint !== 'whereJsonContains' && (! is_array(
+            $filterDescriptor['value']
+        ) || $constraint === 'whereDate')) {
             $query->{$or ? 'or'.ucfirst($constraint) : $constraint}(
                 $field,
                 $filterDescriptor['operator'] ?? '=',
                 $filterDescriptor['value']
             );
         } elseif ($constraint === 'whereJsonContains') {
-            if (!is_array($filterDescriptor['value'])) {
+            if (! is_array($filterDescriptor['value'])) {
                 $query->{$or ? 'orWhereJsonContains' : 'whereJsonContains'}(
                     $field,
                     $filterDescriptor['value']
@@ -294,7 +280,7 @@ class SearchRequestQueryBuilder
 
             $filterDescriptor['value'] = collect($filterDescriptor['value'])->filter()->values()->toArray();
 
-            if (!count($filterDescriptor['value'])) {
+            if (! count($filterDescriptor['value'])) {
                 return $query;
             }
         }
@@ -316,7 +302,7 @@ class SearchRequestQueryBuilder
         bool $or = false
     ) {
         $pivotClass = $query->getPivotClass();
-        $pivot = new $pivotClass;
+        $pivot = new $pivotClass();
 
         $treatAsDateField = $filterDescriptor['value'] !== null && in_array($field, $pivot->getDates(), true);
 
@@ -328,7 +314,7 @@ class SearchRequestQueryBuilder
                     $filterDescriptor['value']
                 )
             );
-        } elseif (!is_array($filterDescriptor['value'])) {
+        } elseif (! is_array($filterDescriptor['value'])) {
             $query->{$or ? 'orWherePivot' : 'wherePivot'}(
                 $field,
                 $filterDescriptor['operator'] ?? '=',
@@ -354,12 +340,7 @@ class SearchRequestQueryBuilder
      */
     public function getQualifiedFieldName(string $field): string
     {
-        $table = (new $this->resourceModelClass)->getTable();
-        $found = collect($this->resource->allowedFilters())->where(function ($f) use ($field) {
-            return $f->getName() === $field;
-        })->first();
-
-        $field = $found ? $found->getInternalName() : $field;
+        $table = (new $this->resourceModelClass())->getTable();
 
         return "{$table}.{$field}";
     }
@@ -372,11 +353,9 @@ class SearchRequestQueryBuilder
      */
     public function applySearchingToQuery($query, Request $request): void
     {
-        if (!$requestedSearchDescriptor = $request->get('search')) {
+        if (! $requestedSearchDescriptor = $request->get('search')) {
             return;
         }
-
-        // $this->paramsValidator->validateSearch($request);
 
         $searchables = $this->resource->searchableBy();
 
@@ -404,7 +383,7 @@ class SearchRequestQueryBuilder
                                 /**
                                  * @var Builder $relationQuery
                                  */
-                                if (!$caseSensitive) {
+                                if (! $caseSensitive) {
                                     return $relationQuery->whereRaw(
                                         "lower({$relationField}) like lower(?)",
                                         ['%'.$requestedSearchString.'%']
@@ -421,7 +400,7 @@ class SearchRequestQueryBuilder
                     } else {
                         $qualifiedFieldName = $this->getQualifiedFieldName($searchable);
 
-                        if (!$caseSensitive) {
+                        if (! $caseSensitive) {
                             $whereQuery->orWhereRaw(
                                 "lower({$qualifiedFieldName}) like lower(?)",
                                 ['%'.$requestedSearchString.'%']
@@ -458,7 +437,7 @@ class SearchRequestQueryBuilder
 
         $sortableDescriptors = collect($request->get('sort', []))
             ->map(function ($sort) use ($allowedSorts) {
-                if (!$allowedSort = $allowedSorts->get($sort['field'])) {
+                if (! $allowedSort = $allowedSorts->get($sort['field'])) {
                     return null;
                 }
 
@@ -478,13 +457,14 @@ class SearchRequestQueryBuilder
 
                 if ($relation === 'pivot') {
                     $query->orderByPivot($relationField, $direction);
+
                     continue;
                 }
 
                 /**
                  * @var Relation $relationInstance
                  */
-                $relationInstance = (new $this->resourceModelClass)->{$relation}();
+                $relationInstance = (new $this->resourceModelClass())->{$relation}();
 
                 if ($relationInstance instanceof MorphTo) {
                     continue;

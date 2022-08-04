@@ -2,15 +2,15 @@
 
 namespace LiveIntent\LaravelCommon\Http\Resources;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Relations\MorphOne;
-use Illuminate\Database\Eloquent\Relations\MorphTo;
-use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Collection;
 use Orion\Http\Requests\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
+use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class RelationsResolver // implements \Orion\Contracts\RelationsResolver
 {
@@ -130,13 +130,16 @@ class RelationsResolver // implements \Orion\Contracts\RelationsResolver
             case HasOne::class:
             case MorphOne::class:
                 return $relationInstance->getParent()->getTable().'.'.$relationInstance->getLocalKeyName();
+
                 break;
             case BelongsTo::class:
             case MorphTo::class:
                 return $relationInstance->getQualifiedOwnerKeyName();
+
                 break;
             default:
                 return $relationInstance->getQualifiedLocalKeyName();
+
                 break;
         }
     }
@@ -168,7 +171,7 @@ class RelationsResolver // implements \Orion\Contracts\RelationsResolver
      */
     public function guardRelations(Model $entity, array $requestedRelations, bool $normalized = false): Model
     {
-        if (!$normalized) {
+        if (! $normalized) {
             $requestedRelations = $this->normalizeRequestedRelations($requestedRelations);
         }
 
@@ -180,7 +183,7 @@ class RelationsResolver // implements \Orion\Contracts\RelationsResolver
                 continue;
             }
 
-            if (!array_key_exists($relationName, $requestedRelations)) {
+            if (! array_key_exists($relationName, $requestedRelations)) {
                 unset($relations[$relationName]);
             } elseif ($relation !== null) {
                 if ($relation instanceof Model) {
@@ -211,7 +214,7 @@ class RelationsResolver // implements \Orion\Contracts\RelationsResolver
                     Arr::get($normalizedRelations, $parentOfNestedRelation, []),
                     $normalizedNestedRelations
                 );
-            } elseif (!array_key_exists($requestedRelation, $normalizedRelations)) {
+            } elseif (! array_key_exists($requestedRelation, $normalizedRelations)) {
                 $normalizedRelations[$requestedRelation] = [];
             }
         }
