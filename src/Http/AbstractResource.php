@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use LiveIntent\LaravelCommon\Http\Exceptions\InvalidResourceModelException;
+use LiveIntent\LaravelCommon\Http\Resources\SearchRequestQueryBuilder;
 use Orion\Drivers\Standard\SearchBuilder;
 use Orion\Drivers\Standard\ParamsValidator;
 use Orion\Drivers\Standard\RelationsResolver;
@@ -183,39 +184,46 @@ abstract class AbstractResource extends JsonResource
         // have access to some of the vital instance methods
         $resource = (new ReflectionClass(static::class))->newInstanceWithoutConstructor();
 
-        $paramsValidator = new ParamsValidator(
-            collect($resource->allowedScopes())->map(function ($scope) {
-                if (is_string($scope)) {
-                    return AllowedScope::name($scope);
-                }
+        // $paramsValidator = new ParamsValidator(
+        //     collect($resource->allowedScopes())->map(function ($scope) {
+        //         if (is_string($scope)) {
+        //             return AllowedScope::name($scope);
+        //         }
 
-                return $scope;
-            })->map->getName()->toArray(),
-            collect($resource->allowedFilters())->map->getName()->toArray(),
-            collect($resource->allowedSorts())->map(function ($sort) {
-                if (is_string($sort)) {
-                    return AllowedSort::field($sort);
-                }
+        //         return $scope;
+        //     })->map->getName()->toArray(),
+        //     collect($resource->allowedFilters())->map->getName()->toArray(),
+        //     collect($resource->allowedSorts())->map(function ($sort) {
+        //         if (is_string($sort)) {
+        //             return AllowedSort::field($sort);
+        //         }
 
-                return $sort;
-            })->map->getName()->toArray()
-        );
+        //         return $sort;
+        //     })->map->getName()->toArray()
+        // );
 
-        $searchBuilder = new SearchBuilder($resource->searchableBy());
-        $relationsResolver = new RelationsResolver([], []);
+        // $searchBuilder = new SearchBuilder($resource->searchableBy());
+        // $relationsResolver = new RelationsResolver([], []);
 
-        $builder = app()->make(FilterQueryBuilder::class, [
-            'resourceModelClass' => $modelClass,
-            'paramsValidator' => $paramsValidator,
-            'relationsResolver' => $relationsResolver,
-            'searchBuilder' => $searchBuilder,
-            'intermediateMode' => false,
+        // $builder = app()->make(FilterQueryBuilder::class, [
+        //     'resourceModelClass' => $modelClass,
+        //     'paramsValidator' => $paramsValidator,
+        //     'relationsResolver' => $relationsResolver,
+        //     'searchBuilder' => $searchBuilder,
+        //     'intermediateMode' => false,
+        //     'resource' => $resource
+        // ]);
+
+        $builder = app(SearchRequestQueryBuilder::class, [
             'resource' => $resource
         ]);
+        // $builder = new SearchRequestQueryBuilder($resource, new RelationsResolver([], []));
 
-        $query = $builder->buildQuery($modelClass::query(), OrionRequest::createFrom($request));
+        $query = $builder->buildQuery($modelClass::query(), $request);
 
         $collection = $query->get();
+
+        // $collection = $query->get();
         // Okay, it's decision time! We need to determine which
         // search method we'll use based on the user's input
         // $builderClass = $request->isMethod('GET') ? BasicQueryBuilder::class : AdvancedQueryBuilder::class;

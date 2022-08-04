@@ -27,7 +27,7 @@ class RelationsResolver // implements \Orion\Contracts\RelationsResolver
     /**
      * @inheritDoc
      */
-    public function __construct(array $includableRelations, array $alwaysIncludedRelations)
+    public function __construct(array $includableRelations = [], array $alwaysIncludedRelations = [])
     {
         $this->includableRelations = $includableRelations;
         $this->alwaysIncludedRelations = $alwaysIncludedRelations;

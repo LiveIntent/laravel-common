@@ -14,7 +14,7 @@ use LiveIntent\LaravelCommon\Http\Resources\RelationsResolver;
 use LiveIntent\LaravelCommon\Http\Resources\SearchRequestQueryBuilder;
 use LiveIntent\LaravelCommon\Http\Exceptions\InvalidResourceScopeException;
 
-class SearchQueryBuilderTest extends TestCase
+class SearchRequestQueryBuilderTest extends TestCase
 {
     /** @test */
     public function scopes_can_be_applied_to_the_query()
