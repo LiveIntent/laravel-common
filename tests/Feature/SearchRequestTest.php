@@ -36,9 +36,8 @@ class SearchRequestTest extends TestCase
         $this->postJson('/api/posts/search', ['page' => ['size' => 2]])->assertResponseCount(2);
         $this->postJson('/api/posts/search', ['page' => ['size' => 10]])->assertResponseCount(5);
 
-        // TODO
-        // Config::set('json-api-paginate.max_results', 10);
-        // $this->postJson('/api/posts/search', ['page' => ['size' => 11]])->assertValidationErrors('page.size');
+        Config::set('json-api-paginate.max_results', 10);
+        $this->postJson('/api/posts/search', ['page' => ['size' => 11]])->assertValidationErrors('page.size');
     }
 
     /** @test */
