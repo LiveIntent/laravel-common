@@ -71,4 +71,51 @@ class SearchRequestTest extends TestCase
             ]
         ])->assertResponseCount(2);
     }
+
+    /** @test */
+    public function search_requests_can_use_sorts()
+    {
+        Post::factory(2)->create(['title' => 'special title']);
+        Post::factory(2)->create(['title' => 'less special title', 'publish_at' => now()->subSeconds(2)]);
+        Post::factory(2)->create(['title' => 'very special title', 'publish_at' => now()->subSeconds(10)]);
+
+        $response = $this->postJson('/api/posts/search', [
+            'scopes' => [
+                ['name' => 'published']
+            ],
+            'filters' => [
+                ['field' => 'title', 'operator' => 'like', 'value' => '%special%'],
+            ],
+            'sort' => [
+                ['field' => 'publish_at']
+            ]
+        ])->assertResponseCount(4);
+
+        $this->assertEquals('very special title', $response->json('data')[0]['title']);
+    }
+
+    /** @test */
+    public function search_requests_can_use_full_text_search()
+    {
+        Post::factory(2)->create(['title' => 'special title']);
+        Post::factory(2)->create(['title' => 'less special title', 'publish_at' => now()->subSeconds(2)]);
+        Post::factory(2)->create(['title' => 'very special title', 'publish_at' => now()->subSeconds(10)]);
+
+        $response = $this->postJson('/api/posts/search', [
+            'scopes' => [
+                ['name' => 'published']
+            ],
+            'filters' => [
+                ['field' => 'title', 'operator' => 'like', 'value' => '%special%'],
+            ],
+            'search' => [
+                'value' => 'very'
+            ],
+            'sort' => [
+                ['field' => 'publish_at']
+            ]
+        ])->assertResponseCount(2);
+
+        $this->assertEquals('very special title', $response->json('data')[0]['title']);
+    }
 }

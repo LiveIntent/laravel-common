@@ -361,7 +361,7 @@ class SearchRequestQueryBuilder
 
         $query->where(
             function ($whereQuery) use ($searchables, $requestedSearchDescriptor) {
-                $requestedSearchString = $requestedSearchDescriptor['value'];
+                $requestedSearchString = $requestedSearchDescriptor['value'] ?? '';
 
                 $caseSensitive = (bool) Arr::get(
                     $requestedSearchDescriptor,
