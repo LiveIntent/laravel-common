@@ -3,8 +3,8 @@
 namespace LiveIntent\LaravelCommon\Tests\Feature;
 
 use Illuminate\Support\Facades\Config;
-use LiveIntent\LaravelCommon\Tests\Fixtures\App\Models\Post;
 use LiveIntent\LaravelCommon\Tests\TestCase;
+use LiveIntent\LaravelCommon\Tests\Fixtures\App\Models\Post;
 
 class SearchRequestTest extends TestCase
 {
@@ -39,5 +39,36 @@ class SearchRequestTest extends TestCase
         // TODO
         // Config::set('json-api-paginate.max_results', 10);
         // $this->postJson('/api/posts/search', ['page' => ['size' => 11]])->assertValidationErrors('page.size');
+    }
+
+    /** @test */
+    public function search_requests_can_use_scopes()
+    {
+        Post::factory(2)->create(['publish_at' => now()->subSeconds(2)]);
+        Post::factory(2)->create();
+
+        $this->postJson('/api/posts/search', [
+            'scopes' => [
+                ['name' => 'published']
+            ]
+        ])->assertResponseCount(2);
+    }
+
+    /** @test */
+    public function search_requests_can_use_filters()
+    {
+        Post::factory(2)->create(['title' => 'special title']);
+        Post::factory(2)->create(['title' => 'less special title', 'publish_at' => now()->subSeconds(2)]);
+        Post::factory(2)->create(['title' => 'very special title', 'publish_at' => now()->subSeconds(2)]);
+
+        $this->postJson('/api/posts/search', [
+            'scopes' => [
+                ['name' => 'published']
+            ],
+            'filters' => [
+                ['field' => 'title', 'operator' => 'like', 'value' => '%special%'],
+                ['field' => 'title', 'operator' => 'like', 'value' => '%very%'],
+            ]
+        ])->assertResponseCount(2);
     }
 }
