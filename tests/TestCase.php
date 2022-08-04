@@ -5,6 +5,7 @@ namespace LiveIntent\LaravelCommon\Tests;
 use Orchestra\Testbench\TestCase as Orchestra;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Facades\Route;
 use LiveIntent\LaravelCommon\LaravelCommonServiceProvider;
 
 class TestCase extends Orchestra
@@ -20,25 +21,27 @@ class TestCase extends Orchestra
         );
     }
 
-    protected function getPackageProviders($app)
-    {
-        return [
-            LaravelCommonServiceProvider::class,
-        ];
-    }
-
     protected function defineDatabaseMigrations()
     {
         $this->loadMigrationsFrom(__DIR__ . '/Fixtures/database/migrations');
     }
 
+    protected function defineRoutes($router)
+    {
+        Route::prefix('api')
+            ->middleware('api')
+            ->group(__DIR__ . '/Fixtures/routes/api.php');
+    }
+
     public function getEnvironmentSetUp($app)
     {
         config()->set('database.default', 'testing');
+    }
 
-        /*
-        $migration = include __DIR__.'/../database/migrations/create_laravel-common_table.php.stub';
-        $migration->up();
-        */
+    protected function getPackageProviders($app)
+    {
+        return [
+            LaravelCommonServiceProvider::class,
+        ];
     }
 }

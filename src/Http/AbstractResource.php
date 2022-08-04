@@ -175,7 +175,7 @@ abstract class AbstractResource extends JsonResource
 
         // The QueryBuilder will require a valid database model
         // so before we do anything we'll assert it is valid
-        if (! (new ReflectionClass($modelClass))->isSubclassOf(Model::class)) {
+        if (! rescue(fn () => (new ReflectionClass($modelClass))->isSubclassOf(Model::class))) {
             throw new InvalidResourceModelException(static::class, $modelClass);
         }
 

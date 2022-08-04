@@ -13,6 +13,6 @@ class InvalidResourceModelException extends Exception
      */
     public function __construct(string $resource, $model)
     {
-        parent::__construct("The model '{$model}' defined on '{$resource}' is not a valid model class.");
+        parent::__construct("The Model '{$model}' defined on '{$resource}' is not a valid Model class.");
     }
 }
