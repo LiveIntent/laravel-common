@@ -2,28 +2,17 @@
 
 namespace LiveIntent\LaravelCommon\Tests\Unit;
 
-use Mockery;
-use Illuminate\Routing\Route;
 use Illuminate\Http\Request;
-use LiveIntent\LaravelCommon\Http\AbstractResource;
-use LiveIntent\LaravelCommon\Http\AllowedFilter;
+use LiveIntent\LaravelCommon\Tests\TestCase;
 use LiveIntent\LaravelCommon\Http\AllowedSort;
 use LiveIntent\LaravelCommon\Http\AllowedScope;
-use LiveIntent\LaravelCommon\Http\Exceptions\InvalidResourceScopeException;
-use LiveIntent\LaravelCommon\Http\Resources\FullTextSearchBuilder;
-use LiveIntent\LaravelCommon\Http\Resources\RelationsResolver;
-// use Orion\Http\Requests\Request;
-//
-
-use LiveIntent\LaravelCommon\Http\Resources\SearchRequestQueryBuilder;
-use LiveIntent\LaravelCommon\Tests\TestCase;
-use Orion\Drivers\Standard\QueryBuilder;
-use Orion\Drivers\Standard\SearchBuilder;
+use LiveIntent\LaravelCommon\Http\AllowedFilter;
+use LiveIntent\LaravelCommon\Http\AbstractResource;
 use LiveIntent\LaravelCommon\Tests\Fixtures\App\Models\Post;
 use LiveIntent\LaravelCommon\Tests\Fixtures\App\Models\User;
-use Orion\Tests\Fixtures\App\Models\Team;
-use Orion\Drivers\Standard\ParamsValidator;
-use Orion\Tests\Unit\Drivers\Standard\Stubs\ControllerStub;
+use LiveIntent\LaravelCommon\Http\Resources\RelationsResolver;
+use LiveIntent\LaravelCommon\Http\Resources\SearchRequestQueryBuilder;
+use LiveIntent\LaravelCommon\Http\Exceptions\InvalidResourceScopeException;
 
 class SearchQueryBuilderTest extends TestCase
 {
@@ -391,6 +380,53 @@ class SearchQueryBuilderTest extends TestCase
     }
 
     /** @test */
+    public function fields_are_filterable_with_nested_filters_up_to_the_max_configured_depth()
+    {
+        $postA = Post::factory()->create(['title' => 'test post', 'tracking_id' => 1]);
+        $postB = Post::factory()->create(['title' => 'another test post', 'tracking_id' => 5]);
+        $postC = Post::factory()->create(['title' => 'different post', 'tracking_id' => 10]);
+
+        $resource = new class (null) extends AbstractResource {
+            protected static $model = Post::class;
+
+            public function allowedFilters()
+            {
+                return [
+                    AllowedFilter::string('title'),
+                ];
+            }
+        };
+
+        $request = tap(new Request(), function ($req) {
+            $req->query->set(
+                'filters',
+                [
+                    ['field' => 'title', 'operator' => '=', 'value' => 'test post'],
+                    ['type' => 'or', 'nested' => [
+                        ['field' => 'title', 'operator' => 'like', 'value' => '%post%'],
+                        ['type' => 'and', 'nested' => [
+                            ['field' => 'title', 'operator' => 'like', 'value' => '%post%'],
+                            ['field' => 'title', 'operator' => 'not like', 'value' => '%different%'],
+                        ]],
+                    ]],
+                ]
+            );
+        });
+
+        $queryBuilder = new SearchRequestQueryBuilder($resource, new RelationsResolver([], []));
+
+        $results = tap(
+            Post::query(),
+            fn ($query) => $queryBuilder->applyFiltersToQuery($query, $request)
+        )->get();
+
+        $this->assertCount(2, $results);
+        $this->assertTrue($results->contains('id', $postA->id));
+        $this->assertTrue($results->contains('id', $postB->id));
+        $this->assertFalse($results->contains('id', $postC->id));
+    }
+
+    /** @test */
     public function full_text_search_can_be_done_on_specified_fields()
     {
         $postA = Post::factory()->create(['title' => 'title example']);
@@ -557,202 +593,46 @@ class SearchQueryBuilderTest extends TestCase
         $this->assertEquals($postA->id, $results[2]->id);
     }
 
-    // protected function makeRequestWithSort(array $sort)
-    // {
-    //     $request = new Request();
-    //     $request->setRouteResolver(
-    //         function () {
-    //             return new Route('GET', '/api/tags', [ControllerStub::class, 'index']);
-    //         }
-    //     );
-    //     $request->query->set('sort', $sort);
+    /** @test */
+    public function sort_can_be_applied_on_related_fields()
+    {
+        $postAUser = User::factory()->create(['name' => 'name C']);
+        $postA = Post::factory()->for($postAUser)->create();
 
-    //     return $request;
-    // }
+        $postBUser = User::factory()->create(['name' => 'name B']);
+        $postB = Post::factory()->for($postBUser)->create();
 
-    // /** @test */
-    // public function desc_sorting_based_on_model_fields()
-    // {
-    //     $request = $this->makeRequestWithSort(
-    //         [
-    //             ['field' => 'title', 'direction' => 'desc'],
-    //         ]
-    //     );
+        $postCUser = User::factory()->create(['name' => 'name A']);
+        $postC = Post::factory()->for($postCUser)->create();
 
-    //     $postA = factory(Post::class)->create(['title' => 'post A']);
-    //     $postB = factory(Post::class)->create(['title' => 'post B']);
-    //     $postC = factory(Post::class)->create(['title' => 'post C']);
+        $resource = new class (null) extends AbstractResource {
+            protected static $model = Post::class;
 
-    //     $query = Post::query();
+            public function allowedSorts()
+            {
+                return [
+                    AllowedSort::field('user.name')
+                ];
+            }
+        };
 
-    //     $queryBuilder = new QueryBuilder(
-    //         Post::class,
-    //         new ParamsValidator([], [], ['title']),
-    //         new RelationsResolver([], []),
-    //         new SearchBuilder([])
-    //     );
-    //     $queryBuilder->applySortingToQuery($query, $request);
+        $request = tap(new Request(), function ($req) {
+            $req->query->set(
+                'sort', [
+                    ['field' => 'user.name']
+                ],
+            );
+        });
 
-    //     $posts = $query->get();
+        $queryBuilder = new SearchRequestQueryBuilder($resource, new RelationsResolver([], []));
 
-    //     $this->assertEquals($postC->id, $posts[0]->id);
-    //     $this->assertEquals($postB->id, $posts[1]->id);
-    //     $this->assertEquals($postA->id, $posts[2]->id);
-    // }
+        $results = tap(
+            Post::query(),
+            fn ($query) => $queryBuilder->applySortingToQuery($query, $request)
+        )->get();
 
-    // /** @test */
-    // public function default_sorting_based_on_relation_fields()
-    // {
-    //     $request = $this->makeRequestWithSort(
-    //         [
-    //             ['field' => 'user.name'],
-    //         ]
-    //     );
-
-    //     $postAUser = factory(User::class)->create(['name' => 'user A']);
-    //     $postA = factory(Post://:class)->forUser()->create();
-
-    //     $postBUser = factory(User::class)->create(['name' => 'user B']);
-    //     $postB = factory(Post://:class)->forUser()->create();
-
-    //     $postCUser = factory(User::class)->create(['name' => 'user C']);
-    //     $postC = factory(Post://:class)->forUser()->create();
-
-    //     $query = Post::query();
-
-    //     $queryBuilder = new QueryBuilder(
-    //         Post::class,
-    //         new ParamsValidator([], [], ['user.name']),
-    //         new RelationsResolver([], []),
-    //         new SearchBuilder([])
-    //     );
-    //     $queryBuilder->applySortingToQuery($query, $request);
-
-    //     $posts = $query->get();
-
-    //     $this->assertEquals($postA->id, $posts[0]->id);
-    //     $this->assertEquals($postB->id, $posts[1]->id);
-    //     $this->assertEquals($postC->id, $posts[2]->id);
-    // }
-
-    // /** @test */
-    // public function desc_sorting_based_on_relation_fields()
-    // {
-    //     $request = $this->makeRequestWithSort(
-    //         [
-    //             ['field' => 'user.name', 'direction' => 'desc'],
-    //         ]
-    //     );
-
-    //     $postAUser = factory(User::class)->create(['name' => 'user A']);
-    //     $postA = factory(Post://:class)->forUser()->create();
-
-    //     $postBUser = factory(User::class)->create(['name' => 'user B']);
-    //     $postB = factory(Post://:class)->forUser()->create();
-
-    //     $postCUser = factory(User::class)->create(['name' => 'user C']);
-    //     $postC = factory(Post://:class)->forUser()->create();
-
-    //     $query = Post::query();
-
-    //     $queryBuilder = new QueryBuilder(
-    //         Post::class,
-    //         new ParamsValidator([], [], ['user.name']),
-    //         new RelationsResolver([], []),
-    //         new SearchBuilder([])
-    //     );
-    //     $queryBuilder->applySortingToQuery($query, $request);
-
-    //     $posts = $query->get();
-
-    //     $this->assertEquals($postC->id, $posts[0]->id);
-    //     $this->assertEquals($postB->id, $posts[1]->id);
-    //     $this->assertEquals($postA->id, $posts[2]->id);
-    // }
-
-    // /** @test */
-    // public function soft_deletes_query_constraints_are_not_applied_if_model_is_not_soft_deletable()
-    // {
-    //     $request = new Request();
-    //     $request->setRouteResolver(
-    //         function () {
-    //             return new Route('GET', '/api/teams', [ControllerStub::class, 'index']);
-    //         }
-    //     );
-
-    //     $queryMock = Mockery::mock(Team::query())->makePartial();
-    //     $queryMock->shouldNotReceive('withTrashed');
-    //     $queryMock->shouldNotReceive('onlyTrashed');
-
-    //     $queryBuilder = new QueryBuilder(
-    //         Team::class,
-    //         new ParamsValidator([], []),
-    //         new RelationsResolver([], []),
-    //         new SearchBuilder([])
-    //     );
-
-    //     $this->assertFalse($queryBuilder->applySoftDeletesToQuery($queryMock, $request));
-    // }
-
-    // /** @test */
-    // public function trashed_models_are_returned_when_requested()
-    // {
-    //     $request = new Request();
-    //     $request->setRouteResolver(
-    //         function () {
-    //             return new Route('GET', '/api/posts', [ControllerStub::class, 'index']);
-    //         }
-    //     );
-    //     $request->query->set('with_trashed', true);
-
-    //     $post = factory(Post::class)->create();
-    //     $softDeletedPost = factory(Post::class)->state('trashed')->create();
-
-    //     $query = Post::query();
-
-    //     $queryBuilder = new QueryBuilder(
-    //         Post::class,
-    //         new ParamsValidator([], []),
-    //         new RelationsResolver([], []),
-    //         new SearchBuilder([])
-    //     );
-    //     $this->assertTrue($queryBuilder->applySoftDeletesToQuery($query, $request));
-
-    //     $posts = $query->get();
-
-    //     $this->assertCount(2, $posts);
-    //     $this->assertTrue($posts->contains('id', $post->id));
-    //     $this->assertTrue($posts->contains('id', $softDeletedPost->id));
-    // }
-
-    // /** @test */
-    // public function only_trashed_models_are_returned_when_requested()
-    // {
-    //     $request = new Request();
-    //     $request->setRouteResolver(
-    //         function () {
-    //             return new Route('GET', '/api/posts', [ControllerStub::class, 'index']);
-    //         }
-    //     );
-    //     $request->query->set('only_trashed', true);
-
-    //     $post = factory(Post::class)->create();
-    //     $softDeletedPost = factory(Post::class)->state('trashed')->create();
-
-    //     $query = Post::query();
-
-    //     $queryBuilder = new QueryBuilder(
-    //         Post::class,
-    //         new ParamsValidator([], []),
-    //         new RelationsResolver([], []),
-    //         new SearchBuilder([])
-    //     );
-    //     $this->assertTrue($queryBuilder->applySoftDeletesToQuery($query, $request));
-
-    //     $posts = $query->get();
-
-    //     $this->assertCount(1, $posts);
-    //     $this->assertFalse($posts->contains('id', $post->id));
-    //     $this->assertTrue($posts->contains('id', $softDeletedPost->id));
-    // }
+        $this->assertEquals($postC->id, $results[0]->id);
+        $this->assertEquals($postB->id, $results[1]->id);
+        $this->assertEquals($postA->id, $results[2]->id);
+    }
 }

@@ -80,7 +80,6 @@ class SearchRequestQueryBuilder
                 $this->applySearchingToQuery($query, $request);
                 $this->applySortingToQuery($query, $request);
             }
-            $this->applySoftDeletesToQuery($query, $request);
         }
 
         return $query;
@@ -133,6 +132,10 @@ class SearchRequestQueryBuilder
 
         $filterDescriptors = collect($filterDescriptors ?: $request->get('filters', []))
             ->map(function ($filter) use ($allowedFilters) {
+                if (is_array(Arr::get($filter, 'nested'))) {
+                    return $filter;
+                }
+
                 if (!$allowedFilter = $allowedFilters->get($filter['field'] ?? '')) {
                     return null;
                 }
@@ -506,27 +509,5 @@ class SearchRequestQueryBuilder
                 $query->orderBy($this->getQualifiedFieldName($sortableField), $direction);
             }
         }
-    }
-
-    /**
-     * Apply "soft deletes" query to the given query builder based on either "with_trashed" or "only_trashed" query parameters.
-     *
-     * @param Builder|Relation|SoftDeletes $query
-     * @param Request $request
-     * @return bool
-     */
-    public function applySoftDeletesToQuery($query, Request $request): bool
-    {
-        if (!$query->getMacro('withTrashed')) {
-            return false;
-        }
-
-        if (filter_var($request->query('with_trashed', false), FILTER_VALIDATE_BOOLEAN)) {
-            $query->withTrashed();
-        } elseif (filter_var($request->query('only_trashed', false), FILTER_VALIDATE_BOOLEAN)) {
-            $query->onlyTrashed();
-        }
-
-        return true;
     }
 }
