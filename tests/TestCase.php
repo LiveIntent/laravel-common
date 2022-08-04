@@ -2,15 +2,18 @@
 
 namespace LiveIntent\LaravelCommon\Tests;
 
+use Illuminate\Support\Facades\Route;
 use Orchestra\Testbench\TestCase as Orchestra;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Support\Facades\Route;
+use Spatie\JsonApiPaginate\JsonApiPaginateServiceProvider;
 use LiveIntent\LaravelCommon\LaravelCommonServiceProvider;
+use LiveIntent\LaravelCommon\Testing\InteractsWithJSONResponses;
 
 class TestCase extends Orchestra
 {
     use RefreshDatabase;
+    use InteractsWithJSONResponses;
 
     public function setUp(): void
     {
@@ -19,6 +22,8 @@ class TestCase extends Orchestra
         Factory::guessFactoryNamesUsing(
             fn (string $modelName) => 'LiveIntent\\LaravelCommon\\Tests\\Fixtures\\Database\\Factories\\'.class_basename($modelName).'Factory'
         );
+
+        $this->registerResponseMacros();
     }
 
     protected function defineDatabaseMigrations()
@@ -41,6 +46,7 @@ class TestCase extends Orchestra
     protected function getPackageProviders($app)
     {
         return [
+            JsonApiPaginateServiceProvider::class,
             LaravelCommonServiceProvider::class,
         ];
     }

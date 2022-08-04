@@ -221,7 +221,7 @@ abstract class AbstractResource extends JsonResource
 
         $query = $builder->buildQuery($modelClass::query(), $request);
 
-        $collection = $query->get();
+        $collection = $query->jsonPaginate();
 
         // $collection = $query->get();
         // Okay, it's decision time! We need to determine which
