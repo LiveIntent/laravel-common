@@ -214,7 +214,7 @@ abstract class AbstractResource extends JsonResource
         //     'resource' => $resource
         // ]);
 
-        app(SearchRequestValidator::class)->validate($request, $resource);
+        app(SearchRequestValidator::class, ['request' => $request, 'resource' => $resource])->validate();
 
         $builder = app(SearchRequestQueryBuilder::class, [
             'resource' => $resource
