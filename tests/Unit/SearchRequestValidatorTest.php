@@ -264,7 +264,7 @@ class SearchRequestValidatorTest extends TestCase
 
         collect()
             ->concat(['=', '!=', '>', '>=', '<', '<='])
-            ->crossJoin([-1, 0, 1, 2, null])
+            ->crossJoin([-1, 0, 1, 2, null, ''])
             ->eachSpread(function ($operator, $value) use ($resource) {
                 $this->assertValid($resource, [
                     'filters' => [['field' => 'likes', 'value' => $value, 'operator' => $operator]]
@@ -324,7 +324,7 @@ class SearchRequestValidatorTest extends TestCase
 
         collect()
             ->concat(['=', '!=', '>', '>=', '<', '<='])
-            ->crossJoin([null, '2022-01-01', '2022-01-01 00:00:00', '2022-01-01T00:00:00'])
+            ->crossJoin([null, '', '2022-01-01', '2022-01-01 00:00:00', '2022-01-01T00:00:00'])
             ->eachSpread(function ($operator, $value) use ($resource) {
                 $this->assertValid($resource, [
                     'filters' => [['field' => 'went_to_darkside_at', 'value' => $value, 'operator' => $operator]]
@@ -368,7 +368,48 @@ class SearchRequestValidatorTest extends TestCase
             });
     }
 
-    // search
+    /** @test */
+    public function searches_must_have_a_valid_string_value()
+    {
+        $resource = new class (null) extends AbstractResource {
+            protected static $model = Post::class;
+        };
+
+        $this->assertValid($resource, ['search' => ['value' => 'foobar']]);
+        $this->assertValid($resource, ['search' => ['value' => 'f']]);
+        $this->assertValid($resource, ['search' => ['value' => '100']]);
+        $this->assertValid($resource, ['search' => ['value' => null]]);
+        $this->assertValid($resource, ['search' => ['value' => '']]);
+
+        $this->assertInvalid($resource, ['search' => null]);
+        $this->assertInvalid($resource, ['search' => 'foobar']);
+        $this->assertInvalid($resource, ['search' => ['value' => 100]]);
+        $this->assertInvalid($resource, ['search' => ['value' => false]]);
+        $this->assertInvalid($resource, ['search' => ['value' => true]]);
+        $this->assertInvalid($resource, ['search' => ['value' => []]]);
+        $this->assertInvalid($resource, ['search' => ['value' => ['foobar']]]);
+    }
+
+    /** @test */
+    public function searches_may_have_a_boolean_arg_for_case_sensitive()
+    {
+        $resource = new class (null) extends AbstractResource {
+            protected static $model = Post::class;
+        };
+
+        $this->assertValid($resource, ['search' => ['value' => 'foobar', 'case_sensitive' => true]]);
+        $this->assertValid($resource, ['search' => ['value' => 'foobar', 'case_sensitive' => false]]);
+        $this->assertValid($resource, ['search' => ['value' => 'foobar', 'case_sensitive' => 0]]);
+        $this->assertValid($resource, ['search' => ['value' => 'foobar', 'case_sensitive' => 1]]);
+        $this->assertValid($resource, ['search' => ['case_sensitive' => true]]);
+
+        $this->assertInvalid($resource, ['search' => ['value' => 'foobar', 'case_sensitive' => 'true']]);
+        $this->assertInvalid($resource, ['search' => ['value' => 'foobar', 'case_sensitive' => 'false']]);
+        $this->assertInvalid($resource, ['search' => ['value' => 'foobar', 'case_sensitive' => 100]]);
+        $this->assertInvalid($resource, ['search' => ['value' => 'foobar', 'case_sensitive' => 'yes']]);
+        $this->assertInvalid($resource, ['search' => ['value' => 'foobar', 'case_sensitive' => 'no']]);
+    }
+
     // sort
     // pagination
 

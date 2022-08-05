@@ -23,7 +23,7 @@ class SearchRequestValidator
             ...$this->scopeRules(),
             ...$this->filterRules(),
             ...$this->paginationRules(),
-            // search rules
+            ...$this->searchRules(),
         ];
     }
 
@@ -71,6 +71,18 @@ class SearchRequestValidator
 
         return [
             'page.size' => "integer|lte:{$maxPageSize}"
+        ];
+    }
+
+    /**
+     * Get the search validation rules.
+     */
+    protected function searchRules()
+    {
+        return [
+            'search' => ['sometimes', 'array'],
+            'search.value' => ['string', 'nullable'],
+            'search.case_sensitive' => ['bool'],
         ];
     }
 
