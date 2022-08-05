@@ -96,8 +96,11 @@ class AllowedFilter implements Aliasable
      */
     public static function timestamp(string $name, ?string $internalName = null)
     {
-        return new static($name, $internalName, [
-            '=', '!=', 'in', 'not in', '>', '>=', '<', '<='
-        ]);
+        return new static(
+            $name,
+            $internalName,
+            ['=', '!=', 'in', 'not in', '>', '>=', '<', '<='],
+            ['date', 'nullable']
+        );
     }
 }

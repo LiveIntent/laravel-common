@@ -309,9 +309,63 @@ class SearchRequestValidatorTest extends TestCase
     }
 
     /** @test */
-    public function timestamp_fields_are_only_filterable_with_relevant_operators()
+    public function timestamp_fields_are_only_filterable_with_relevant_operators_and_values()
     {
-        //
+        $resource = new class (null) extends AbstractResource {
+            protected static $model = Post::class;
+
+            public function allowedFilters()
+            {
+                return [
+                    AllowedFilter::timestamp('went_to_darkside_at')
+                ];
+            }
+        };
+
+        collect()
+            ->concat(['=', '!=', '>', '>=', '<', '<='])
+            ->crossJoin([null, '2022-01-01', '2022-01-01 00:00:00', '2022-01-01T00:00:00'])
+            ->eachSpread(function ($operator, $value) use ($resource) {
+                $this->assertValid($resource, [
+                    'filters' => [['field' => 'went_to_darkside_at', 'value' => $value, 'operator' => $operator]]
+                ]);
+            });
+
+        collect()
+            ->concat(['in', 'not in'])
+            ->crossJoin([[null], ['2022-01-01'], ['2022-01-01 00:00:00'], ['2022-01-01T00:00:00']])
+            ->eachSpread(function ($operator, $value) use ($resource) {
+                $this->assertValid($resource, [
+                    'filters' => [['field' => 'went_to_darkside_at', 'value' => $value, 'operator' => $operator]]
+                ]);
+        });
+
+        collect()
+            ->concat(['=', '!=', '>', '>=', '<', '<='])
+            ->crossJoin(['1', '100', 'red', [], ['red'], false, 1659571200, 'now', 'yesterday', '+1 week'])
+            ->eachSpread(function ($operator, $value) use ($resource) {
+                $this->assertInvalid($resource, [
+                    'filters' => [['field' => 'went_to_darkside_at', 'value' => $value, 'operator' => $operator]]
+                ]);
+            });
+
+        collect()
+            ->concat(['in', 'not in'])
+            ->crossJoin(['red', 'blue', '', null, false, 1, 100, [], ['100'], ['red'], [1659571200], ['now'], ['yesterday'], ['+1 week']])
+            ->eachSpread(function ($operator, $value) use ($resource) {
+                $this->assertInvalid($resource, [
+                    'filters' => [['field' => 'went_to_darkdside_at', 'value' => $value, 'operator' => $operator]]
+                ]);
+            });
+
+        collect()
+            ->concat(['like', 'not like'])
+            ->crossJoin([null, '2022-01-01', '2022-01-01 00:00:00', '2022-01-01T00:00:00'])
+            ->eachSpread(function ($operator, $value) use ($resource) {
+                $this->assertInvalid($resource, [
+                    'filters' => [['field' => 'went_to_darkdside_at', 'value' => $value, 'operator' => $operator]]
+                ]);
+            });
     }
 
     // search
