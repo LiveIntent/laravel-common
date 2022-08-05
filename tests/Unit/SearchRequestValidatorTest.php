@@ -3,6 +3,8 @@
 namespace LiveIntent\LaravelCommon\Tests\Unit;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Validation\ValidationException;
 use LiveIntent\LaravelCommon\Tests\TestCase;
 use LiveIntent\LaravelCommon\Http\AllowedScope;
 use LiveIntent\LaravelCommon\Http\AbstractResource;
@@ -156,7 +158,43 @@ class SearchRequestValidatorTest extends TestCase
     /** @test */
     public function filters_may_only_be_nested_to_a_certain_configured_max_depth()
     {
-        //
+        $resource = new class (null) extends AbstractResource {
+            protected static $model = Post::class;
+
+            public function allowedFilters()
+            {
+                return [
+                    AllowedFilter::string('color')
+                ];
+            }
+        };
+
+        Config::set('liveintent.search.max_nested_depth', 3);
+        $this->assertValid($resource, [
+            'filters' => [
+                ['nested' => [
+                    ['nested' => [
+                        ['nested' => [
+                            ['field' => 'color', 'value' => 'green']
+                        ]]
+                    ]]
+                ]]
+            ]
+        ]);
+
+        Config::set('liveintent.search.max_nested_depth', 2);
+        $this->expectException(ValidationException::class);
+        $this->assertInvalid($resource, [
+            'filters' => [
+                ['nested' => [
+                    ['nested' => [
+                        ['nested' => [
+                            ['field' => 'color', 'value' => 'green']
+                        ]]
+                    ]]
+                ]]
+            ]
+        ]);
     }
 
     /** @test */

@@ -5,6 +5,7 @@ namespace LiveIntent\LaravelCommon\Http;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 class SearchRequestValidator
 {
@@ -46,14 +47,15 @@ class SearchRequestValidator
     protected function filterRules()
     {
         $maxDepth = floor($this->getArrayDepth($this->request->input('filters', [])) / 2);
-        $configMaxNestedDepth = config('orion.search.max_nested_depth', 1);
+        $configMaxNestedDepth = config('liveintent.search.max_nested_depth', 15);
 
-        // abort early so we dont screw ourselves
-        // abort_if(
-        //     $maxDepth > $configMaxNestedDepth,
-        //     422,
-        //     __('Max nested depth :depth is exceeded', ['depth' => $configMaxNestedDepth])
-        // );
+        // Bork early if the nesting is to big so we don't screw ourselves
+        throw_if(
+            $maxDepth > $configMaxNestedDepth,
+            ValidationException::withMessages([
+                __('Max nested depth :depth is exceeded', ['depth' => $configMaxNestedDepth])
+            ])
+        );
 
         return array_merge([
             'filters' => ['sometimes', 'array'], // TODO add array keys

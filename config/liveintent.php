@@ -109,6 +109,10 @@ return [
 
         // base url of the api
         'base_url' => env('LI_GATEWAY_URL', ''),
+    ],
+
+    'search' => [
+        'max_nested_depth' => env('LI_SEARCH_MAX_NESTED_DEPTH', 15)
     ]
 
 ];
