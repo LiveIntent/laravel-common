@@ -56,7 +56,7 @@ abstract class AbstractResource extends JsonResource
     /**
      * The allowed filters for the resource.
      *
-     * @return array
+     * @return array<AllowedFilter>
      */
     public function allowedFilters()
     {

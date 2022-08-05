@@ -82,40 +82,34 @@ class SearchRequestValidator
     protected function getNestedFilterRules(string $prefix, int $maxDepth, array $rules = [], int $currentDepth = 1): array
     {
         $filterableFields = collect($this->resource->allowedFilters())->keyBy->getName();
-        $filterableFieldsList = $filterableFields->map->getName()->join(',');
 
         $rules = array_merge($rules, [
             $prefix.'.*.type' => ['sometimes', 'in:and,or'],
+            $prefix.'.*.nested' => ['sometimes', 'array',],
             $prefix.'.*.field' => [
                 "required_without:{$prefix}.*.nested",
-                "in:{$filterableFieldsList}"
+                Rule::in($filterableFields->keys()->toArray())
             ],
             $prefix.'.*.operator' => Rule::forEach(function ($_, $attribute, $item) use ($filterableFields) {
                 $key = str($attribute)->beforeLast('.')->toString();
 
-                $fieldName = $item["{$key}.field"] ?? '';
-                $filter = $filterableFields->get($fieldName);
-
-                if (!$filter) {
+                if (!$filter = $filterableFields->get($item["{$key}.field"] ?? '')) {
                     return [];
                 }
 
                 return [
                     'sometimes',
-                    'in:' . implode(',', $filter->getAllowedOperators())
+                    Rule::in($filter->getAllowedOperators())
                 ];
             }),
             $prefix.'.*.value' => Rule::forEach(function ($_, $attribute, $item) use ($filterableFields) {
                 $key = str($attribute)->beforeLast('.')->toString();
 
-                $fieldName = $item["{$key}.field"] ?? '';
-                $operator = $item["{$key}.operator"] ?? '=';
-                $filter = $filterableFields->get($fieldName);
-
-                if (!$filter) {
+                if (!$filter = $filterableFields->get($item["{$key}.field"] ?? '')) {
                     return [];
                 }
 
+                $operator = $item["{$key}.operator"] ?? '=';
                 if (in_array($operator, ['in', 'not in'])) {
                     return ['required', 'array'];
                 }
@@ -124,16 +118,13 @@ class SearchRequestValidator
             }),
             $prefix.'.*.value.*' => Rule::forEach(function ($_, $attribute, $item) use ($filterableFields) {
                 $key = str($attribute)->beforeLast('.')->beforeLast('.')->toString();
-                $fieldName = $item["{$key}.field"] ?? '';
-                $filter = $filterableFields->get($fieldName);
 
-                if (!$filter) {
+                if (!$filter = $filterableFields->get($item["{$key}.field"] ?? '')) {
                     return [];
                 }
 
                 return $filter->getValueRules();
             }),
-            $prefix.'.*.nested' => ['sometimes', 'array',],
         ]);
 
         if ($maxDepth >= $currentDepth) {
