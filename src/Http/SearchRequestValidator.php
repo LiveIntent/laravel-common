@@ -98,7 +98,9 @@ class SearchRequestValidator
 
         return [
             'page.size' => "integer|lte:{$maxPageSize}|gte:1",
-            'page.number' => "integer|gte:1"
+            'page.number' => "integer|gte:1",
+            'page.cursor' => "prohibits:page.number",
+            'page.include_total_count' => "boolean",
         ];
     }
 

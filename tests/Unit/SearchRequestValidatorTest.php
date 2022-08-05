@@ -479,7 +479,7 @@ class SearchRequestValidatorTest extends TestCase
     }
 
     /** @test */
-    public function page_number_must_not_be_a_valid_postive_integer()
+    public function page_number_must_be_a_valid_postive_integer()
     {
         $resource = new class (null) extends AbstractResource {
             protected static $model = Post::class;
@@ -488,7 +488,7 @@ class SearchRequestValidatorTest extends TestCase
         $this->assertValid($resource, ['page' => ['number' => 1]]);
         $this->assertValid($resource, ['page' => ['number' => 10]]);
         $this->assertValid($resource, ['page' => ['number' => 10000000000]]);
-        $this->assertValid($resource, ['page' => ['number' => '1']]);
+        $this->assertValid($resource, ['page' => ['number' => '4']]);
 
         $this->assertInvalid($resource, ['page' => ['number' => 0]]);
         $this->assertInvalid($resource, ['page' => ['number' => -1]]);
@@ -496,23 +496,34 @@ class SearchRequestValidatorTest extends TestCase
     }
 
     /** @test */
-    public function page_cursor_may_be_used()
+    public function page_include_total_count_must_be_a_boolean()
     {
         $resource = new class (null) extends AbstractResource {
             protected static $model = Post::class;
         };
 
-        // $this->assertValid($resource, ['page' => ['number' => 1]]);
-        // $this->assertValid($resource, ['page' => ['number' => 10]]);
-        // $this->assertValid($resource, ['page' => ['number' => 10000000000]]);
+        $this->assertValid($resource, ['page' => ['include_total_count' => 1]]);
+        $this->assertValid($resource, ['page' => ['include_total_count' => 0]]);
+        $this->assertValid($resource, ['page' => ['include_total_count' => true]]);
+        $this->assertValid($resource, ['page' => ['include_total_count' => false]]);
 
-        // $this->assertInvalid($resource, ['page' => ['number' => '1']]);
-        // $this->assertInvalid($resource, ['page' => ['number' => 0]]);
-        // $this->assertInvalid($resource, ['page' => ['number' => -1]]);
-        // $this->assertInvalid($resource, ['page' => ['number' => 'one']]);
+        $this->assertInvalid($resource, ['page' => ['include_total_count' => 'true']]);
+        $this->assertInvalid($resource, ['page' => ['include_total_count' => 'false']]);
+        $this->assertInvalid($resource, ['page' => ['include_total_count' => 100]]);
     }
 
-    // pagination
+    /** @test */
+    public function page_number_and_cursor_may_not_be_mixed()
+    {
+        $resource = new class (null) extends AbstractResource {
+            protected static $model = Post::class;
+        };
+
+        $this->assertValid($resource, ['page' => ['number' => 1]]);
+        $this->assertValid($resource, ['page' => ['cursor' => 'abc']]);
+
+        $this->assertInvalid($resource, ['page' => ['number' => 1, 'cursor' => 'abc']]);
+    }
 
     private function assertInvalid(AbstractResource $resource, $payload)
     {
