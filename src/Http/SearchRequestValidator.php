@@ -90,10 +90,21 @@ class SearchRequestValidator
                 "required_without:{$prefix}.*.nested",
                 "in:{$filterableFieldsList}"
             ],
-            $prefix.'.*.operator' => [
-                'sometimes',
-                'in:<,<=,>,>=,=,!=,like,not like,ilike,not ilike,in,not in,all in,any in',
-            ],
+            $prefix.'.*.operator' => Rule::forEach(function ($_, $attribute, $item) use ($filterableFields) {
+                $key = str($attribute)->beforeLast('.')->toString();
+
+                $fieldName = $item["{$key}.field"] ?? '';
+                $filter = $filterableFields->get($fieldName);
+
+                if (!$filter) {
+                    return [];
+                }
+
+                return [
+                    'sometimes',
+                    'in:' . implode(',', $filter->getAllowedOperators())
+                ];
+            }),
             $prefix.'.*.value' => Rule::forEach(function ($_, $attribute, $item) use ($filterableFields) {
                 $key = str($attribute)->beforeLast('.')->toString();
 
