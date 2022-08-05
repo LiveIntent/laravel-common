@@ -83,11 +83,7 @@ class AllowedFilter implements Aliasable
             $name,
             $internalName,
             ['=', '!=', 'in', 'not in', '>', '>=', '<', '<='],
-            ['integer', 'numeric', 'nullable', function ($attribute, $value, $fail) {
-                if (!is_int($value)) {
-                    $fail('The '.$attribute.' must be an integer.');
-                }
-            }]
+            ['integer', 'numeric', 'nullable']
         );
     }
 

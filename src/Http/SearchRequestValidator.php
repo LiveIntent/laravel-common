@@ -22,8 +22,9 @@ class SearchRequestValidator
         return [
             ...$this->scopeRules(),
             ...$this->filterRules(),
-            ...$this->paginationRules(),
             ...$this->searchRules(),
+            ...$this->sortRules(),
+            ...$this->paginationRules(),
         ];
     }
 
@@ -63,18 +64,6 @@ class SearchRequestValidator
     }
 
     /**
-     * Get the pagination validation rules.
-     */
-    protected function paginationRules()
-    {
-        $maxPageSize = config('json-api-paginate.max_results');
-
-        return [
-            'page.size' => "integer|lte:{$maxPageSize}"
-        ];
-    }
-
-    /**
      * Get the search validation rules.
      */
     protected function searchRules()
@@ -85,6 +74,34 @@ class SearchRequestValidator
             'search.case_sensitive' => ['bool'],
         ];
     }
+
+    /**
+     * Get the scope validation rules.
+     */
+    protected function sortRules()
+    {
+        $exposedSorts = collect($this->resource->allowedSorts())->map->getName()->join(',');
+
+        return [
+            'sort' => ['sometimes', 'array'],
+            'sort.*.field' => ['required_with:sort', 'in:'.$exposedSorts],
+            'sort.*.direction' => ['sometimes', 'in:asc,desc'],
+        ];
+    }
+
+    /**
+     * Get the pagination validation rules.
+     */
+    protected function paginationRules()
+    {
+        $maxPageSize = config('json-api-paginate.max_results');
+
+        return [
+            'page.size' => "integer|lte:{$maxPageSize}|gte:1",
+            'page.number' => "integer|gte:1"
+        ];
+    }
+
 
     /**
      * @param string $prefix

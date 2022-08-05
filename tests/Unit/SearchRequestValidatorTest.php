@@ -9,6 +9,7 @@ use LiveIntent\LaravelCommon\Tests\TestCase;
 use LiveIntent\LaravelCommon\Http\AllowedScope;
 use LiveIntent\LaravelCommon\Http\AbstractResource;
 use LiveIntent\LaravelCommon\Http\AllowedFilter;
+use LiveIntent\LaravelCommon\Http\AllowedSort;
 use LiveIntent\LaravelCommon\Http\SearchRequestValidator;
 
 class SearchRequestValidatorTest extends TestCase
@@ -264,7 +265,7 @@ class SearchRequestValidatorTest extends TestCase
 
         collect()
             ->concat(['=', '!=', '>', '>=', '<', '<='])
-            ->crossJoin([-1, 0, 1, 2, null, ''])
+            ->crossJoin([-1, 0, 1, 2, null, '', '1', '100'])
             ->eachSpread(function ($operator, $value) use ($resource) {
                 $this->assertValid($resource, [
                     'filters' => [['field' => 'likes', 'value' => $value, 'operator' => $operator]]
@@ -282,7 +283,7 @@ class SearchRequestValidatorTest extends TestCase
 
         collect()
             ->concat(['=', '!=', '>', '>=', '<', '<='])
-            ->crossJoin(['1', '100', 'red', [], ['red'], false])
+            ->crossJoin(['red', [], ['red'], false])
             ->eachSpread(function ($operator, $value) use ($resource) {
                 $this->assertInvalid($resource, [
                     'filters' => [['field' => 'likes', 'value' => $value, 'operator' => $operator]]
@@ -291,7 +292,7 @@ class SearchRequestValidatorTest extends TestCase
 
         collect()
             ->concat(['in', 'not in'])
-            ->crossJoin(['red', 'blue', '', null, false, 1, 100, [], ['100'], ['red']])
+            ->crossJoin(['red', 'blue', '', null, false, 1, 100, [], ['one'], ['red']])
             ->eachSpread(function ($operator, $value) use ($resource) {
                 $this->assertInvalid($resource, [
                     'filters' => [['field' => 'likes', 'value' => $value, 'operator' => $operator]]
@@ -410,7 +411,107 @@ class SearchRequestValidatorTest extends TestCase
         $this->assertInvalid($resource, ['search' => ['value' => 'foobar', 'case_sensitive' => 'no']]);
     }
 
-    // sort
+    /** @test */
+    public function sorts_must_be_whitelisted()
+    {
+        $resource = new class (null) extends AbstractResource {
+            protected static $model = Post::class;
+
+            public function allowedSorts()
+            {
+                return [
+                    AllowedSort::field('barfoo')
+                ];
+            }
+        };
+
+        $this->assertInvalid($resource, ['sort' => [['field' => 'foobar']]]);
+        $this->assertInvalid($resource, ['sort' => [['field' => '']]]);
+        $this->assertInvalid($resource, ['sort' => [['field' => null]]]);
+        $this->assertInvalid($resource, ['sort' => [['field' => 100]]]);
+        $this->assertInvalid($resource, ['sort' => [['field' => 'foobar'], ['field' => 'barfoo']]]);
+
+        $this->assertValid($resource, ['sort' => [['field' => 'barfoo']]]);
+        $this->assertValid($resource, ['sort' => []]);
+    }
+
+    /** @test */
+    public function sort_direction_must_be_valid()
+    {
+        $resource = new class (null) extends AbstractResource {
+            protected static $model = Post::class;
+
+            public function allowedSorts()
+            {
+                return [
+                    AllowedSort::field('barfoo')
+                ];
+            }
+        };
+
+        $this->assertValid($resource, ['sort' => [['field' => 'barfoo']]]);
+        $this->assertValid($resource, ['sort' => [['field' => 'barfoo', 'direction' => 'asc']]]);
+        $this->assertValid($resource, ['sort' => [['field' => 'barfoo', 'direction' => 'desc']]]);
+
+        $this->assertInvalid($resource, ['sort' => [['field' => 'barfoo', 'direction' => 'ASC']]]);
+        $this->assertInvalid($resource, ['sort' => [['field' => 'barfoo', 'direction' => 'DESC']]]);
+        $this->assertInvalid($resource, ['sort' => [['field' => 'barfoo', 'direction' => true]]]);
+        $this->assertInvalid($resource, ['sort' => [['field' => 'barfoo', 'direction' => false]]]);
+        $this->assertInvalid($resource, ['sort' => [['field' => 'barfoo', 'direction' => 'abra']]]);
+        $this->assertInvalid($resource, ['sort' => [['field' => 'barfoo', 'direction' => 'kedabra']]]);
+    }
+
+    /** @test */
+    public function page_size_must_not_be_greater_than_the_configured_amount()
+    {
+        $resource = new class (null) extends AbstractResource {
+            protected static $model = Post::class;
+        };
+
+        Config::set('json-api-paginate.max_results', 10);
+        $this->assertValid($resource, ['page' => ['size' => 1]]);
+        $this->assertValid($resource, ['page' => ['size' => 10]]);
+        $this->assertValid($resource, ['page' => ['size' => '10']]);
+
+        $this->assertInvalid($resource, ['page' => ['size' => 11]]);
+        $this->assertInvalid($resource, ['page' => ['size' => 0]]);
+        $this->assertInvalid($resource, ['page' => ['size' => -1]]);
+    }
+
+    /** @test */
+    public function page_number_must_not_be_a_valid_postive_integer()
+    {
+        $resource = new class (null) extends AbstractResource {
+            protected static $model = Post::class;
+        };
+
+        $this->assertValid($resource, ['page' => ['number' => 1]]);
+        $this->assertValid($resource, ['page' => ['number' => 10]]);
+        $this->assertValid($resource, ['page' => ['number' => 10000000000]]);
+        $this->assertValid($resource, ['page' => ['number' => '1']]);
+
+        $this->assertInvalid($resource, ['page' => ['number' => 0]]);
+        $this->assertInvalid($resource, ['page' => ['number' => -1]]);
+        $this->assertInvalid($resource, ['page' => ['number' => 'one']]);
+    }
+
+    /** @test */
+    public function page_cursor_may_be_used()
+    {
+        $resource = new class (null) extends AbstractResource {
+            protected static $model = Post::class;
+        };
+
+        // $this->assertValid($resource, ['page' => ['number' => 1]]);
+        // $this->assertValid($resource, ['page' => ['number' => 10]]);
+        // $this->assertValid($resource, ['page' => ['number' => 10000000000]]);
+
+        // $this->assertInvalid($resource, ['page' => ['number' => '1']]);
+        // $this->assertInvalid($resource, ['page' => ['number' => 0]]);
+        // $this->assertInvalid($resource, ['page' => ['number' => -1]]);
+        // $this->assertInvalid($resource, ['page' => ['number' => 'one']]);
+    }
+
     // pagination
 
     private function assertInvalid(AbstractResource $resource, $payload)
