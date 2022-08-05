@@ -42,6 +42,15 @@ class AllowedFilter implements Aliasable
     }
 
     /**
+     *
+     */
+    public function rules()
+    {
+        return 'string';
+    }
+
+
+    /**
      * Get the internal facing name.
      */
     public function getAllowedOperators(): array
