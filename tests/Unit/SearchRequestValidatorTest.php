@@ -184,7 +184,7 @@ class SearchRequestValidatorTest extends TestCase
 
         collect()
             ->concat(['in', 'not in'])
-            ->crossJoin([['red'], ['red', 'blue'], ['red', null], []])
+            ->crossJoin([['red'], ['red', 'blue'], ['red', null]])
             ->eachSpread(function ($operator, $value) use ($resource) {
                 $this->assertValid($resource, [
                     'filters' => [['field' => 'color', 'value' => $value, 'operator' => $operator]]
@@ -202,7 +202,7 @@ class SearchRequestValidatorTest extends TestCase
 
         collect()
             ->concat(['in', 'not in'])
-            ->crossJoin(['red', 'blue', '', null, false, [100], [false]])
+            ->crossJoin(['red', 'blue', '', null, false, [], [100], [false]])
             ->eachSpread(function ($operator, $value) use ($resource) {
                 $this->assertInvalid($resource, [
                     'filters' => [['field' => 'color', 'value' => $value, 'operator' => $operator]]

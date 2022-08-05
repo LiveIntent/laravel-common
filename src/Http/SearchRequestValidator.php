@@ -49,7 +49,7 @@ class SearchRequestValidator
         // );
 
         return array_merge([
-            'filters' => ['sometimes', 'array'],
+            'filters' => ['sometimes', 'array'], // TODO add array keys
         ], $this->getNestedFilterRules('filters', $maxDepth));
     }
 
@@ -65,16 +65,6 @@ class SearchRequestValidator
         $filterableFields = collect($this->resource->allowedFilters())->keyBy->getName();
         $filterableFieldsMatcher = $filterableFields->map->getName()->join(',');
 
-        // $stringFieldRules = 'string';
-
-        // $this->validator()->sometimes($prefix.'.*.value', 'string', fn ($_, $item) => $item->field === 'foobar');
-        // $filterableFields->each(
-        //     fn ($filter) => $this->validator()->sometimes($prefix.'.*.value', $filter->rules(), fn ($_, $item) => $item->field === $filter->getName())
-        // );
-        // $this->validator()->sometimes($prefix.'.*.value', $stringFieldRules, $isStringFilter)
-
-        // $this->validator()->sometimes($prefix.'.*.value', 'array', fn ($input, $item) => in_array($item->operator, ['in', 'not in']));
-
         $rules = array_merge($rules, [
             $prefix.'.*.type' => ['sometimes', 'in:and,or'],
             $prefix.'.*.field' => [
@@ -87,29 +77,36 @@ class SearchRequestValidator
                 'sometimes',
                 'in:<,<=,>,>=,=,!=,like,not like,ilike,not ilike,in,not in,all in,any in',
             ],
-            // $prefix.'.*.value' => ['nullable'],
             $prefix.'.*.value' => Rule::forEach(function ($_, $attribute, $item) use ($filterableFields) {
                 $key = str($attribute)->beforeLast('.')->toString();
 
-                $fieldName = $item["{$key}.field"];
+                $fieldName = $item["{$key}.field"] ?? '';
                 $operator = $item["{$key}.operator"] ?? '=';
                 $filter = $filterableFields->get($fieldName);
 
-                if (in_array($operator, ['in', 'not in'])) {
-                    return 'array';
+                if (!$filter) {
+                    return [];
                 }
-                // $rules = $field === 'color' ? [
-                //     'string', 'nullable'
-                // ] : [];
+
+                if (in_array($operator, ['in', 'not in'])) {
+                    return ['required', 'array'];
+                }
 
                 return $filter->getValueRules();
-                // if the field is a string, then we need to have string values or array of string values
-                // return $rules;
+            }),
+            $prefix.'.*.value.*' => Rule::forEach(function ($_, $attribute, $item) use ($filterableFields) {
+                $key = str($attribute)->beforeLast('.')->beforeLast('.')->toString();
+                $fieldName = $item["{$key}.field"] ?? '';
+                $filter = $filterableFields->get($fieldName);
+
+                if (!$filter) {
+                    return [];
+                }
+
+                return $filter->getValueRules();
             }),
             $prefix.'.*.nested' => ['sometimes', 'array',],
         ]);
-
-        // dump($rules);
 
         if ($maxDepth >= $currentDepth) {
             $rules = array_merge(
