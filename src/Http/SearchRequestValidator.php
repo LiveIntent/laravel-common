@@ -3,38 +3,45 @@
 namespace LiveIntent\LaravelCommon\Http;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Validator;
 
 class SearchRequestValidator
 {
     /**
      * Create a new instance.
      */
-    public function __construct(private Request $request, private AbstractResource $resource)
-    {}
+    public function __construct(private Request $request, private AbstractResource $resource) {}
 
     /**
      * Build the validation rules for searching the resource.
      */
     public function rules()
     {
-        $maxPageSize = config('json-api-paginate.max_results');
-
-        $exposedScopes = collect($this->resource->allowedScopes())->map->getName()->toArray();
-
         return [
+            ...$this->scopeRules(),
             ...$this->filterRules(),
-            'scopes' => ['sometimes', 'array'],
-            'scopes.*.name' => ['required_with:scopes', 'in:'.implode(',', $exposedScopes)],
-            'scopes.*.parameters' => ['sometimes', 'array'],
-
-            'page.size' => "integer|lte:{$maxPageSize}"
+            ...$this->paginationRules(),
+            // search rules
         ];
     }
 
     /**
-     *
+     * Get the scope validation rules.
+     */
+    protected function scopeRules()
+    {
+        $exposedScopes = collect($this->resource->allowedScopes())->map->getName()->join(',');
+
+        return [
+            'scopes' => ['sometimes', 'array'],
+            'scopes.*.name' => ['required_with:scopes', 'in:'.$exposedScopes],
+            'scopes.*.parameters' => ['sometimes', 'array'],
+        ];
+    }
+
+    /**
+     * Get the filter validation rules.
      */
     protected function filterRules()
     {
@@ -54,6 +61,18 @@ class SearchRequestValidator
     }
 
     /**
+     * Get the pagination validation rules.
+     */
+    protected function paginationRules()
+    {
+        $maxPageSize = config('json-api-paginate.max_results');
+
+        return [
+            'page.size' => "integer|lte:{$maxPageSize}"
+        ];
+    }
+
+    /**
      * @param string $prefix
      * @param int $maxDepth
      * @param array $rules
@@ -63,15 +82,13 @@ class SearchRequestValidator
     protected function getNestedFilterRules(string $prefix, int $maxDepth, array $rules = [], int $currentDepth = 1): array
     {
         $filterableFields = collect($this->resource->allowedFilters())->keyBy->getName();
-        $filterableFieldsMatcher = $filterableFields->map->getName()->join(',');
+        $filterableFieldsList = $filterableFields->map->getName()->join(',');
 
         $rules = array_merge($rules, [
             $prefix.'.*.type' => ['sometimes', 'in:and,or'],
             $prefix.'.*.field' => [
                 "required_without:{$prefix}.*.nested",
-                'regex:/^[\w.\_\-\>]+$/',
-                // new WhitelistedField($this->filterableBy),
-                "in:{$filterableFieldsMatcher}"
+                "in:{$filterableFieldsList}"
             ],
             $prefix.'.*.operator' => [
                 'sometimes',
@@ -119,6 +136,24 @@ class SearchRequestValidator
     }
 
     /**
+     * Get the depth of an array.
+     */
+    protected function getArrayDepth($array): int
+    {
+        $maxDepth = 0;
+
+        foreach ($array as $value) {
+            if (is_array($value)) {
+                $depth = $this->getArrayDepth($value) + 1;
+
+                $maxDepth = max($depth, $maxDepth);
+            }
+        }
+
+        return $maxDepth;
+    }
+
+    /**
      * Create a validator for a request.
      */
     public function validator()
@@ -149,23 +184,4 @@ class SearchRequestValidator
     {
         return new static($request, $resource);
     }
-
-    /**
-     * Get the depth of an array.
-     */
-    protected function getArrayDepth($array): int
-    {
-        $maxDepth = 0;
-
-        foreach ($array as $value) {
-            if (is_array($value)) {
-                $depth = $this->getArrayDepth($value) + 1;
-
-                $maxDepth = max($depth, $maxDepth);
-            }
-        }
-
-        return $maxDepth;
-    }
-
 }

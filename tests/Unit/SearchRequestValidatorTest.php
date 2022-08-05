@@ -211,7 +211,7 @@ class SearchRequestValidatorTest extends TestCase
     }
 
     /** @test */
-    public function number_fields_are_only_filterable_with_relevant_operators()
+    public function number_fields_are_only_filterable_with_relevant_operators_and_values()
     {
         $resource = new class (null) extends AbstractResource {
             protected static $model = Post::class;
@@ -219,22 +219,55 @@ class SearchRequestValidatorTest extends TestCase
             public function allowedFilters()
             {
                 return [
-                    AllowedFilter::number('views')
+                    AllowedFilter::number('likes')
                 ];
             }
         };
 
-        collect([
-            '=', '!=', 'in', 'not in', '>', '>=', '<', '<='
-        ])->each(function ($operator) use ($resource) {
-            $this->assertValid($resource, [
-                'filters' => [['field' => 'views', 'value' => 'red', 'operator' => $operator]]
-            ]);
+        collect()
+            ->concat(['=', '!=', '>', '>=', '<', '<='])
+            ->crossJoin([-1, 0, 1, 2, null])
+            ->eachSpread(function ($operator, $value) use ($resource) {
+                $this->assertValid($resource, [
+                    'filters' => [['field' => 'likes', 'value' => $value, 'operator' => $operator]]
+                ]);
+            });
+
+        collect()
+            ->concat(['in', 'not in'])
+            ->crossJoin([[1], [1, 2], [3, null]])
+            ->eachSpread(function ($operator, $value) use ($resource) {
+                $this->assertValid($resource, [
+                    'filters' => [['field' => 'likes', 'value' => $value, 'operator' => $operator]]
+                ]);
         });
 
-        $this->assertInvalid($resource, [
-            'filters' => [['field' => 'color', 'value' => 'red', 'operator' => 'cookies']]
-        ]);
+        collect()
+            ->concat(['=', '!=', '>', '>=', '<', '<='])
+            ->crossJoin(['1', '100', 'red', [], ['red'], false])
+            ->eachSpread(function ($operator, $value) use ($resource) {
+                $this->assertInvalid($resource, [
+                    'filters' => [['field' => 'likes', 'value' => $value, 'operator' => $operator]]
+                ]);
+            });
+
+        collect()
+            ->concat(['in', 'not in'])
+            ->crossJoin(['red', 'blue', '', null, false, 1, 100, [], ['100'], ['red']])
+            ->eachSpread(function ($operator, $value) use ($resource) {
+                $this->assertInvalid($resource, [
+                    'filters' => [['field' => 'likes', 'value' => $value, 'operator' => $operator]]
+                ]);
+            });
+
+        collect()
+            ->concat(['like', 'not like'])
+            ->crossJoin([-1, 0, 1, 2, null])
+            ->eachSpread(function ($operator, $value) use ($resource) {
+                $this->assertInvalid($resource, [
+                    'filters' => [['field' => 'likes', 'value' => $value, 'operator' => $operator]]
+                ]);
+            });
     }
 
     /** @test */

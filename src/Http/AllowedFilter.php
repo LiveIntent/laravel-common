@@ -79,9 +79,16 @@ class AllowedFilter implements Aliasable
      */
     public static function number(string $name, ?string $internalName = null)
     {
-        return new static($name, $internalName, [
-            '=', '!=', 'in', 'not in', '>', '>=', '<', '<='
-        ]);
+        return new static(
+            $name,
+            $internalName,
+            ['=', '!=', 'in', 'not in', '>', '>=', '<', '<='],
+            ['integer', 'numeric', 'nullable', function ($attribute, $value, $fail) {
+                if (!is_int($value)) {
+                    $fail('The '.$attribute.' must be an integer.');
+                }
+            }]
+        );
     }
 
     /**
