@@ -15,14 +15,18 @@ class AllowedFilter implements Aliasable
     /** @var array */
     protected $allowedOperators;
 
+    /** @var array */
+    protected $rules;
+
     /**
      * Create a new instance.
      */
-    public function __construct(string $name, ?string $internalName = null, ?array $allowedOperators = [])
+    public function __construct(string $name, ?string $internalName = null, ?array $allowedOperators = [], ?array $rules = [])
     {
         $this->name = $name;
         $this->internalName = $internalName ?? $name;
         $this->allowedOperators = $allowedOperators ?? [];
+        $this->rules = $rules ?? [];
     }
 
     /**
@@ -42,15 +46,6 @@ class AllowedFilter implements Aliasable
     }
 
     /**
-     *
-     */
-    public function rules()
-    {
-        return 'string';
-    }
-
-
-    /**
      * Get the internal facing name.
      */
     public function getAllowedOperators(): array
@@ -59,13 +54,24 @@ class AllowedFilter implements Aliasable
     }
 
     /**
+     * Get rules to use for validating the value of the filter.
+     */
+    public function getValueRules(): array
+    {
+        return $this->rules;
+    }
+
+    /**
      * Create a new allowed filter for a string field.
      */
     public static function string(string $name, ?string $internalName = null)
     {
-        return new static($name, $internalName, [
-            '=', '!=', 'in', 'not in', '>', '>=', '<', '<=', 'like', 'not like'
-        ]);
+        return new static(
+            $name,
+            $internalName,
+            ['=', '!=', 'in', 'not in', '>', '>=', '<', '<=', 'like', 'not like'],
+            ['string', 'nullable']
+        );
     }
 
     /**

@@ -88,17 +88,23 @@ class SearchRequestValidator
                 'in:<,<=,>,>=,=,!=,like,not like,ilike,not ilike,in,not in,all in,any in',
             ],
             // $prefix.'.*.value' => ['nullable'],
-            $prefix.'.*.value' => Rule::forEach(function ($_, $attribute, $item) {
+            $prefix.'.*.value' => Rule::forEach(function ($_, $attribute, $item) use ($filterableFields) {
                 $key = str($attribute)->beforeLast('.')->toString();
 
-                $field = $item["{$key}.field"];
+                $fieldName = $item["{$key}.field"];
+                $operator = $item["{$key}.operator"] ?? '=';
+                $filter = $filterableFields->get($fieldName);
 
-                $rules = $field === 'color' ? [
-                    'string', 'nullable'
-                ] : [];
+                if (in_array($operator, ['in', 'not in'])) {
+                    return 'array';
+                }
+                // $rules = $field === 'color' ? [
+                //     'string', 'nullable'
+                // ] : [];
 
+                return $filter->getValueRules();
                 // if the field is a string, then we need to have string values or array of string values
-                return $rules;
+                // return $rules;
             }),
             $prefix.'.*.nested' => ['sometimes', 'array',],
         ]);
