@@ -1,0 +1,237 @@
+<?php
+
+namespace LiveIntent\LaravelCommon\Http\Middleware;
+
+use Closure;
+use Exception;
+use Illuminate\Http\Request;
+use Lcobucci\JWT\Token\Plain;
+use Lcobucci\JWT\Token\Parser;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\RedirectResponse;
+use Lcobucci\JWT\Encoding\JoseEncoder;
+use LiveIntent\LaravelCommon\Log\LogScrubber;
+use Symfony\Component\HttpFoundation\Response;
+
+class LogWithRequestContext
+{
+    private array $ignorePaths;
+    private int $messageMaxSizeBytes;
+    private bool $shouldLogSessionInfo;
+
+    public function __construct()
+    {
+        $this->ignorePaths = config('liveintent.logging.ignore_paths', []);
+        $this->messageMaxSizeBytes = config('liveintent.logging.message_max_size_bytes', 13000);
+        $this->shouldLogSessionInfo = config('liveintent.logging.log_session_info', false);
+    }
+
+    /**
+     * Handle an incoming request.
+     */
+    public function handle(Request $request, Closure $next): Response|RedirectResponse
+    {
+        $requestId = $request->header('x-request-id') ?: str()->uuid();
+        $maybeUnverifiedToken = $this->getUnverifiedToken($request);
+        $maybeUserId = $this->getUserId($maybeUnverifiedToken);
+
+        Log::withContext([
+            'request_id' => $requestId,
+            'request_method' => $request->method(),
+            'request_path' => "/" . $request->path(),
+            'user_id' => $maybeUserId,
+            'controller_action' => optional($request->route())->getActionName(),
+        ]);
+
+        // Only log if the path should not be ignored
+        if (! $request->is($this->ignorePaths)) {
+            $this->logIncomingRequest($request, $maybeUserId);
+        }
+
+        /** @var Response $response */
+        $response = $next($request);
+        $response->headers->set('x-request-id', $requestId);
+
+        return $response;
+    }
+
+    public function terminate(Request $request, Response $response): void
+    {
+        // Only log if the path should not be ignored
+        if ($request->is($this->ignorePaths)) {
+            return;
+        }
+
+        $maybeUnverifiedToken = $this->getUnverifiedToken($request);
+        $maybeUserId = $this->getUserId($maybeUnverifiedToken);
+
+        $this->logOutgoingResponse($request, $response, $maybeUserId);
+    }
+
+    protected function logIncomingRequest(Request $request, ?string $userId = ""): void
+    {
+        $method = $request->getMethod();
+        $fullUri = $request->getRequestUri();
+
+        Log::info("Begin processing request $method $fullUri for User $userId");
+        Log::debug("Incoming Request Headers: " . json_encode($this->getSanitizedHeaders($request)));
+        $this->logMultiPart("Incoming Request Body", json_encode($this->getSanitizedPayload($request)));
+        if ($this->shouldLogSessionInfo) {
+            Log::debug("Incoming Session Info: " . json_encode($this->getSanitizedSessionVariables($request)));
+        }
+    }
+
+    protected function logOutgoingResponse(Request $request, Response $response, ?string $userId = ""): void
+    {
+        $method = $request->getMethod();
+        $fullUri = $request->getRequestUri();
+        $statusCode = $response->getStatusCode();
+
+        $startTime = defined('LARAVEL_START') ? LARAVEL_START : $request->server('REQUEST_TIME_FLOAT');
+        $timeElapsedMs = $startTime ? floor((microtime(true) - $startTime) * 1000) : null;
+
+        Log::debug("Outgoing Response Headers: " . json_encode($this->getSanitizedHeaders($response)));
+        $this->logMultiPart("Outgoing Response Body", json_encode($this->getSanitizedPayload($response)));
+        if ($this->shouldLogSessionInfo) {
+            Log::debug("Outgoing Session Info: " . json_encode($this->getSanitizedSessionVariables($response)));
+        }
+
+        Log::info("Completed processing request $statusCode $method $fullUri for User $userId in $timeElapsedMs ms");
+    }
+
+    protected function getUnverifiedToken(Request $request): ?Plain
+    {
+        if ($bearerToken = $request->bearerToken()) {
+            $parser = new Parser(new JoseEncoder());
+            /** @var Plain $unverifiedToken */
+            $unverifiedToken = $parser->parse($bearerToken);
+
+            return $unverifiedToken;
+        }
+
+        return null;
+    }
+
+    protected function getUserId(Plain $unverifiedToken = null): ?string
+    {
+        try {
+            if (Auth::check()) {
+                return Auth::user()->getAuthIdentifier();
+            }
+        } catch (Exception $exception) {
+            // ignore and continue
+        }
+
+        if ($unverifiedToken !== null) {
+            return $unverifiedToken->claims()->get('sub');
+        }
+
+        return null;
+    }
+
+    /**
+     * Extract the session ID from the given request.
+     */
+    protected function getSessionId(Request $request): ?string
+    {
+        return $request->hasSession()
+            ? $request->session()->getId()
+            : null;
+    }
+
+    /**
+     * Extract the session variables from the given request.
+     */
+    protected function getSanitizedSessionVariables(Request|Response $r): array
+    {
+        if ($r instanceof Request) {
+            $request = $r;
+
+            return $request->hasSession()
+                ? LogScrubber::singleton()->hideSensitiveValues($request->session()->all())
+                : [];
+        }
+
+        $response = $r;
+
+        return method_exists($response, 'hasSession') && $response->hasSession()
+            ? LogScrubber::singleton()->hideSensitiveValues($response->session()->all())
+            : [];
+    }
+
+    /**
+     * Format the given headers.
+     */
+    protected function getSanitizedHeaders(Request|Response $r): array
+    {
+        $headers = collect($r->headers->all())
+            ->map(function ($header) {
+                return $header[0];
+            })->toArray();
+
+        return LogScrubber::singleton()->hideSensitiveValues($headers);
+    }
+
+    /**
+     * Format the given payload.
+     */
+    protected function getSanitizedPayload(Request|Response $r): array
+    {
+        $payload = [];
+
+        if ($r instanceof Request) {
+            $request = $r;
+            $files = $request->files->all();
+
+            array_walk_recursive($files, function (&$file) {
+                $file = [
+                    'name' => $file->getClientOriginalName(),
+                    'size' => $file->isFile() ? ($file->getSize() / 1000) . 'KB' : '0',
+                ];
+            });
+
+            $payload = array_replace_recursive($request->input(), $files);
+        } else {
+            $response = $r;
+            if ($response->headers->get('Content-Type') === 'application/json') {
+                $payload = json_decode($response->getContent(), true);
+            }
+        }
+
+        return LogScrubber::singleton()->hideSensitiveValues($payload);
+    }
+
+    protected function logMultiPart(string $messageContext, string $message): void
+    {
+        $payloadMessages = $this->toMultiPartJsonString($message);
+
+        if (count($payloadMessages) === 1) {
+            Log::debug("$messageContext: " . $payloadMessages[0]);
+        } else {
+            $size = count($payloadMessages);
+            for ($i = 0; $i < $size; $i++) {
+                Log::debug("$messageContext [" . ($i + 1) . " / $size]: " . $payloadMessages[$i]);
+            }
+        }
+    }
+
+    /**
+     * @param string $message
+     * @return array<string>
+     */
+    protected function toMultiPartJsonString(string $message): array
+    {
+        $splitMessages = [];
+
+        $index = 0;
+        while (strlen($message) > (($index + 1) * $this->messageMaxSizeBytes)) {
+            $splitMessages[] = substr($message, ($index * $this->messageMaxSizeBytes), $this->messageMaxSizeBytes);
+            $index++;
+        }
+
+        $splitMessages[] = substr($message, ($index * $this->messageMaxSizeBytes), $this->messageMaxSizeBytes);
+
+        return $splitMessages;
+    }
+}
