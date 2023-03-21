@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\RedirectResponse;
 use Lcobucci\JWT\Encoding\JoseEncoder;
+use LiveIntent\LaravelCommon\Auth\User;
 use LiveIntent\LaravelCommon\Log\LogScrubber;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -19,6 +20,9 @@ class LogWithRequestContext
     private array $ignorePaths;
     private int $messageMaxSizeBytes;
     private bool $shouldLogSessionInfo;
+
+    private ?int $maybeUserId;
+    private ?int $maybeActorId;
 
     public function __construct()
     {
@@ -34,19 +38,23 @@ class LogWithRequestContext
     {
         $requestId = $request->header('x-request-id') ?: str()->uuid();
         $maybeUnverifiedToken = $this->getUnverifiedToken($request);
-        $maybeUserId = $this->getUserId($maybeUnverifiedToken);
+        $this->maybeUserId = $this->getUserId($maybeUnverifiedToken);
+        $this->maybeActorId = $this->getActorId($maybeUnverifiedToken) ?? $this->maybeUserId;
 
         Log::withContext([
             'request_id' => $requestId,
             'request_method' => $request->method(),
             'request_path' => "/" . $request->path(),
-            'user_id' => $maybeUserId,
+            'user' => [
+                'id' => $this->maybeUserId,
+                'actor' => $this->maybeActorId,
+            ],
             'controller_action' => optional($request->route())->getActionName(),
         ]);
 
         // Only log if the path should not be ignored
         if (! $request->is($this->ignorePaths)) {
-            $this->logIncomingRequest($request, $maybeUserId);
+            $this->logIncomingRequest($request);
         }
 
         /** @var Response $response */
@@ -64,17 +72,19 @@ class LogWithRequestContext
         }
 
         $maybeUnverifiedToken = $this->getUnverifiedToken($request);
-        $maybeUserId = $this->getUserId($maybeUnverifiedToken);
+        $this->maybeUserId = $this->getUserId($maybeUnverifiedToken);
+        $this->maybeActorId = $this->getActorId($maybeUnverifiedToken) ?? $this->maybeUserId;
 
-        $this->logOutgoingResponse($request, $response, $maybeUserId);
+        $this->logOutgoingResponse($request, $response);
     }
 
-    protected function logIncomingRequest(Request $request, ?string $userId = ""): void
+    protected function logIncomingRequest(Request $request): void
     {
         $method = $request->getMethod();
         $fullUri = $request->getRequestUri();
+        $userDisplay = $this->getUserDisplay();
 
-        Log::info("Begin processing request $method $fullUri for User $userId");
+        Log::info("Begin processing request $method $fullUri for $userDisplay");
         Log::debug("Incoming Request Headers: " . json_encode($this->getSanitizedHeaders($request)));
         $this->logMultiPart("Incoming Request Body", json_encode($this->getSanitizedPayload($request)));
         if ($this->shouldLogSessionInfo) {
@@ -82,7 +92,7 @@ class LogWithRequestContext
         }
     }
 
-    protected function logOutgoingResponse(Request $request, Response $response, ?string $userId = ""): void
+    protected function logOutgoingResponse(Request $request, Response $response): void
     {
         $method = $request->getMethod();
         $fullUri = $request->getRequestUri();
@@ -97,7 +107,8 @@ class LogWithRequestContext
             Log::debug("Outgoing Session Info: " . json_encode($this->getSanitizedSessionVariables($response)));
         }
 
-        Log::info("Completed processing request $statusCode $method $fullUri for User $userId in $timeElapsedMs ms");
+        $userDisplay = $this->getUserDisplay();
+        Log::info("Completed processing request $statusCode $method $fullUri for $userDisplay in $timeElapsedMs ms");
     }
 
     protected function getUnverifiedToken(Request $request): ?Plain
@@ -113,18 +124,43 @@ class LogWithRequestContext
         return null;
     }
 
-    protected function getUserId(Plain $unverifiedToken = null): ?string
+    protected function getUserId(Plain $unverifiedToken = null): ?int
     {
         try {
             if (Auth::check()) {
-                return Auth::user()->getAuthIdentifier();
+                return (int)Auth::id();
             }
         } catch (Exception $exception) {
             // ignore and continue
         }
 
         if ($unverifiedToken !== null) {
-            return $unverifiedToken->claims()->get('sub');
+            return (int) $unverifiedToken->claims()->get('sub');
+        }
+
+        return null;
+    }
+
+    protected function getActorId(Plain $unverifiedToken = null): ?int
+    {
+        try {
+            if (Auth::check()) {
+                /* @var User $user */
+                $user = Auth::user();
+
+                /**
+                 * @psalm-suppress UndefinedInterfaceMethod
+                 */
+                return $user->getActorIdentifier();
+            }
+        } catch (Exception $exception) {
+            // ignore and continue
+        }
+
+        if ($unverifiedToken !== null) {
+            $claims = $unverifiedToken->claims();
+
+            return $claims->has('act') ? $claims->get('act')['sub'] : null;
         }
 
         return null;
@@ -233,5 +269,19 @@ class LogWithRequestContext
         $splitMessages[] = substr($message, ($index * $this->messageMaxSizeBytes), $this->messageMaxSizeBytes);
 
         return $splitMessages;
+    }
+
+    protected function getUserDisplay(): string
+    {
+        if ($this->maybeUserId == null) {
+            return "unauthenticated user";
+        }
+
+        $display = "User " . $this->maybeUserId;
+        if ($this->maybeActorId !== null && $this->maybeActorId !== $this->maybeUserId) {
+            $display .= " (Actor: " . $this->maybeActorId . ")";
+        }
+
+        return $display;
     }
 }
