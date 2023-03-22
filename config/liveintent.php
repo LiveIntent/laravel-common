@@ -61,6 +61,19 @@ return [
     'logging' => [
         'logger' => \LiveIntent\LaravelCommon\Log\HttpLogger::class,
 
+        // The size of the message before a new log statement is used.
+        // Note:
+        //      This is necessary due to the docker logs 16kb stream buffer which caused elastic search logs to be split,
+        //      which caused kibana to not be able to properly display log entries that ended up being too large.
+        'message_max_size_bytes' => 13000,
+
+        'log_session_info' => false,
+        'log_token_info' => true,
+        'log_request_headers' => true,
+        'log_request_payload' => true,
+        'log_response_headers' => true,
+        'log_response_payload' => true,
+
         'ignore_paths' => [
             'telescope*',
             'health',

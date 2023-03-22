@@ -13,6 +13,7 @@ use Illuminate\Http\RedirectResponse;
 use Lcobucci\JWT\Encoding\JoseEncoder;
 use LiveIntent\LaravelCommon\Auth\User;
 use LiveIntent\LaravelCommon\Log\LogScrubber;
+use LiveIntent\LaravelCommon\Util\StringUtil;
 use Symfony\Component\HttpFoundation\Response;
 
 class LogWithRequestContext
@@ -20,7 +21,13 @@ class LogWithRequestContext
     private array $ignorePaths;
     private int $messageMaxSizeBytes;
     private bool $shouldLogSessionInfo;
+    private bool $shouldLogTokenInfo;
+    private bool $shouldLogRequestHeaders;
+    private bool $shouldLogRequestPayload;
+    private bool $shouldLogResponseHeaders;
+    private bool $shouldLogResponsePayload;
 
+    private ?Plain $maybeUnverifiedToken;
     private ?int $maybeUserId;
     private ?int $maybeActorId;
 
@@ -29,6 +36,11 @@ class LogWithRequestContext
         $this->ignorePaths = config('liveintent.logging.ignore_paths', []);
         $this->messageMaxSizeBytes = config('liveintent.logging.message_max_size_bytes', 13000);
         $this->shouldLogSessionInfo = config('liveintent.logging.log_session_info', false);
+        $this->shouldLogTokenInfo = config('liveintent.logging.log_token_info', true);
+        $this->shouldLogRequestHeaders = config('liveintent.logging.log_request_headers', true);
+        $this->shouldLogRequestPayload = config('liveintent.logging.log_request_payload', true);
+        $this->shouldLogResponseHeaders = config('liveintent.logging.log_response_headers', true);
+        $this->shouldLogResponsePayload = config('liveintent.logging.log_response_payload', true);
     }
 
     /**
@@ -37,9 +49,9 @@ class LogWithRequestContext
     public function handle(Request $request, Closure $next): Response|RedirectResponse
     {
         $requestId = $request->header('x-request-id') ?: str()->uuid();
-        $maybeUnverifiedToken = $this->getUnverifiedToken($request);
-        $this->maybeUserId = $this->getUserId($maybeUnverifiedToken);
-        $this->maybeActorId = $this->getActorId($maybeUnverifiedToken) ?? $this->maybeUserId;
+        $this->maybeUnverifiedToken = $this->getUnverifiedToken($request);
+        $this->maybeUserId = $this->getUserId($this->maybeUnverifiedToken);
+        $this->maybeActorId = $this->getActorId($this->maybeUnverifiedToken) ?? $this->maybeUserId;
 
         Log::withContext([
             'request_id' => $requestId,
@@ -85,8 +97,15 @@ class LogWithRequestContext
         $userDisplay = $this->getUserDisplay();
 
         Log::info("Begin processing request $method $fullUri for $userDisplay");
-        Log::debug("Incoming Request Headers: " . json_encode($this->getSanitizedHeaders($request)));
-        $this->logMultiPart("Incoming Request Body", json_encode($this->getSanitizedPayload($request)));
+        if ($this->maybeUnverifiedToken !== null && $this->shouldLogTokenInfo) {
+            Log::debug("Incoming User Token", ['token' => $this->maybeUnverifiedToken->claims()->all()]);
+        }
+        if ($this->shouldLogRequestHeaders) {
+            Log::debug("Incoming Request Headers: " . json_encode($this->getSanitizedHeaders($request)));
+        }
+        if ($this->shouldLogRequestPayload) {
+            $this->logMultiPart("Incoming Request Payload", json_encode($this->getSanitizedPayload($request)));
+        }
         if ($this->shouldLogSessionInfo) {
             Log::debug("Incoming Session Info: " . json_encode($this->getSanitizedSessionVariables($request)));
         }
@@ -101,8 +120,12 @@ class LogWithRequestContext
         $startTime = defined('LARAVEL_START') ? LARAVEL_START : $request->server('REQUEST_TIME_FLOAT');
         $timeElapsedMs = $startTime ? floor((microtime(true) - $startTime) * 1000) : null;
 
-        Log::debug("Outgoing Response Headers: " . json_encode($this->getSanitizedHeaders($response)));
-        $this->logMultiPart("Outgoing Response Body", json_encode($this->getSanitizedPayload($response)));
+        if ($this->shouldLogResponseHeaders) {
+            Log::debug("Outgoing Response Headers: " . json_encode($this->getSanitizedHeaders($response)));
+        }
+        if ($this->shouldLogResponsePayload) {
+            $this->logMultiPart("Outgoing Response Body", json_encode($this->getSanitizedPayload($response)));
+        }
         if ($this->shouldLogSessionInfo) {
             Log::debug("Outgoing Session Info: " . json_encode($this->getSanitizedSessionVariables($response)));
         }
@@ -240,7 +263,7 @@ class LogWithRequestContext
 
     protected function logMultiPart(string $messageContext, string $message): void
     {
-        $payloadMessages = $this->toMultiPartJsonString($message);
+        $payloadMessages = StringUtil::toMultipart($message, $this->messageMaxSizeBytes);
 
         if (count($payloadMessages) === 1) {
             Log::debug("$messageContext: " . $payloadMessages[0]);
@@ -250,25 +273,6 @@ class LogWithRequestContext
                 Log::debug("$messageContext [" . ($i + 1) . " / $size]: " . $payloadMessages[$i]);
             }
         }
-    }
-
-    /**
-     * @param string $message
-     * @return array<string>
-     */
-    protected function toMultiPartJsonString(string $message): array
-    {
-        $splitMessages = [];
-
-        $index = 0;
-        while (strlen($message) > (($index + 1) * $this->messageMaxSizeBytes)) {
-            $splitMessages[] = substr($message, ($index * $this->messageMaxSizeBytes), $this->messageMaxSizeBytes);
-            $index++;
-        }
-
-        $splitMessages[] = substr($message, ($index * $this->messageMaxSizeBytes), $this->messageMaxSizeBytes);
-
-        return $splitMessages;
     }
 
     protected function getUserDisplay(): string
