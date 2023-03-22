@@ -185,7 +185,39 @@ The example above makes use of the `upsert` facility of Laravel, but you are fre
 
 ### Logging HTTP requests
 
-In your app service provider, register the http logger.
+#### Upgrading from previous implementation
+
+The `AssignRequestId` middleware has now been deprecated and should be removed from your project.
+Please see the instructions below on how to upgrade.
+
+#### Logging HTTP requests with context
+
+In your `app/Http/Kernel.php`, update your`$middleware` to include `LogWithRequestContext`.
+
+> **Note:** This middleware _must_ be the first one in the array
+
+```php
+protected $middleware = [
+    \LiveIntent\LaravelCommon\Http\Middleware\LogWithRequestContext::class,
+    // ... All other middleware
+```
+
+You must also make sure you add the `tap` key and value to `stderr` within your `config/logging.php`.
+
+```php
+'stderr' => [
+    // ... Other configs
+    'tap' => [
+        \LiveIntent\LaravelCommon\Log\HttpLogger::class,
+    ],
+],
+```
+
+> **Note:** If you are using any other type of logging mechanism, add the same `tap` key/value to that as well.
+
+#### Logging HTTP request summary
+
+If you wish to add a request summary log entry, then within your app service provider, register the http logger.
 
 ```php
 <?php

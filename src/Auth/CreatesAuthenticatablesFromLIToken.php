@@ -27,6 +27,9 @@ trait CreatesAuthenticatablesFromLIToken
             'email' => $claims->get('email'),
             'hash_id' => $claims->get('li')['hash_id'],
             'permission_type' => $claims->get('li')['permission_type'],
+            'actor' => (int) $claims->has('act')
+                ? $claims->get('act')['sub']
+                : (int) $claims->get('sub'),
         ]);
     }
 
