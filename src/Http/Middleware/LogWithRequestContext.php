@@ -137,11 +137,15 @@ class LogWithRequestContext
     protected function getUnverifiedToken(Request $request): ?Plain
     {
         if ($bearerToken = $request->bearerToken()) {
-            $parser = new Parser(new JoseEncoder());
-            /** @var Plain $unverifiedToken */
-            $unverifiedToken = $parser->parse($bearerToken);
+            try {
+                $parser = new Parser(new JoseEncoder());
+                /** @var Plain $unverifiedToken */
+                $unverifiedToken = $parser->parse($bearerToken);
 
-            return $unverifiedToken;
+                return $unverifiedToken;
+            } catch (Exception $exception) {
+                // token was provided, but not parseable, ignore and continue
+            }
         }
 
         return null;
@@ -277,8 +281,8 @@ class LogWithRequestContext
 
     protected function getUserDisplay(): string
     {
-        if ($this->maybeUserId == null) {
-            return "unauthenticated user";
+        if (! isset($this->maybeUserId)) {
+            return "unknown user";
         }
 
         $display = "User " . $this->maybeUserId;
