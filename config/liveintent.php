@@ -63,9 +63,9 @@ return [
 
         // The size of the message before a new log statement is used.
         // Note:
-        //      This is necessary due to the docker logs 16kb stream buffer which caused elastic search logs to be split,
+        //      This is necessary due to the docker logs 6kb stream buffer which caused elastic search logs to be split,
         //      which caused kibana to not be able to properly display log entries that ended up being too large.
-        'message_max_size_bytes' => 13000,
+        'message_max_size_bytes' => 5500,
 
         'log_session_info' => false,
         'log_token_info' => true,
