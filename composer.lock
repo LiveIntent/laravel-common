@@ -6419,16 +6419,16 @@
         },
         {
             "name": "liveintent/php-cs-fixer",
-            "version": "v3.0.0",
+            "version": "v3.0.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/LiveIntent/php-cs-fixer.git",
-                "reference": "c419384520b8e80a483dedd74a4cf9b489c796d6"
+                "reference": "58e42c8dc032b02c2e2a60295e9d1a239bd57ef3"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/LiveIntent/php-cs-fixer/zipball/c419384520b8e80a483dedd74a4cf9b489c796d6",
-                "reference": "c419384520b8e80a483dedd74a4cf9b489c796d6",
+                "url": "https://api.github.com/repos/LiveIntent/php-cs-fixer/zipball/58e42c8dc032b02c2e2a60295e9d1a239bd57ef3",
+                "reference": "58e42c8dc032b02c2e2a60295e9d1a239bd57ef3",
                 "shasum": ""
             },
             "require": {
@@ -6457,9 +6457,9 @@
             ],
             "support": {
                 "issues": "https://github.com/LiveIntent/php-cs-fixer/issues",
-                "source": "https://github.com/LiveIntent/php-cs-fixer/tree/v3.0.0"
+                "source": "https://github.com/LiveIntent/php-cs-fixer/tree/v3.0.1"
             },
-            "time": "2022-02-15T12:29:05+00:00"
+            "time": "2024-11-14T21:57:53+00:00"
         },
         {
             "name": "mockery/mockery",
