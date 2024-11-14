@@ -7,6 +7,9 @@ use LiveIntent\LaravelCommon\Auth\User;
 /**
  * @template TModel of \Illuminate\Database\Eloquent\Model
  * @extends \LiveIntent\LaravelCommon\Database\AbstractFactory<TModel>
+ *
+ * @psalm-suppress ImplementedParamTypeMismatch
+ * @method \LiveIntent\LaravelCommon\Auth\User create(array $attributes = [], ?\Illuminate\Database\Eloquent\Model $parent = null)
  */
 class UserFactory extends AbstractFactory
 {

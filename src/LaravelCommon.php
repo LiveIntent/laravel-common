@@ -19,11 +19,17 @@ class LaravelCommon
     public static function registerAuthGuard()
     {
         Auth::extend('li_token', function ($app, $_name, array $config) {
-            return new RequestGuard(function ($request) use ($config) {
+            return new RequestGuard(function ($request) use ($app, $config) {
                 /** @psalm-suppress InvalidArgument */
-                return (new LITokenGuard(
-                    Auth::createUserProvider($config['provider'])
-                ))->user($request);
+                $guard = new LITokenGuard(
+                    'li_token',
+                    Auth::createUserProvider($config['provider']),
+                );
+
+                $guard->setDispatcher($app['events']);
+                $guard->setRequest($request);
+
+                return $guard->user();
             }, $app['request']);
         });
     }

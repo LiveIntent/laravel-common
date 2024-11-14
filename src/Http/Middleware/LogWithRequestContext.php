@@ -34,7 +34,7 @@ class LogWithRequestContext
     public function __construct()
     {
         $this->ignorePaths = config('liveintent.logging.ignore_paths', []);
-        $this->messageMaxSizeBytes = config('liveintent.logging.message_max_size_bytes', 13000);
+        $this->messageMaxSizeBytes = config('liveintent.logging.message_max_size_bytes', 5500);
         $this->shouldLogSessionInfo = config('liveintent.logging.log_session_info', false);
         $this->shouldLogTokenInfo = config('liveintent.logging.log_token_info', true);
         $this->shouldLogRequestHeaders = config('liveintent.logging.log_request_headers', true);
@@ -145,6 +145,7 @@ class LogWithRequestContext
                 return $unverifiedToken;
             } catch (Exception $exception) {
                 // token was provided, but not parseable, ignore and continue
+                Log::debug('ErrorParsingBearerToken', ['exception' => $exception->getMessage()]);
             }
         }
 
