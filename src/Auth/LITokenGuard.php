@@ -50,7 +50,7 @@ class LITokenGuard
     public function user(): ?Authenticatable
     {
         $this->fireAttemptEvent(['token' => $this->getBearerToken()]);
-        if (! $bearerToken = $this->getBearerToken()) {
+        if (!$bearerToken = $this->getBearerToken()) {
             Log::debug('NoBearerTokenPresent');
             $this->fireFailedEvent(null, ['token' => $bearerToken]);
 
@@ -128,7 +128,7 @@ class LITokenGuard
     public function getRequest()
     {
         /** @psalm-suppress RedundantPropertyInitializationCheck */
-        if (! isset($this->request)) {
+        if (!isset($this->request)) {
             $this->request = Request::createFromGlobals();
         }
 
