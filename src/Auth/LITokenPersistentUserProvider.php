@@ -58,7 +58,7 @@ class LITokenPersistentUserProvider implements LITokenUserProvider
     {
         $model = $this->createModel();
 
-        Log::debug('PersistingUser', ['user_id' => $user->getAuthIdentifier()]);
+        Log::debug('PersistingUser user_id: ' . $user->getAuthIdentifier());
 
         // If the user has defined an override method for how the
         // authenticatable should be persisted, we'll use that

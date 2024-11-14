@@ -145,6 +145,7 @@ class LogWithRequestContext
                 return $unverifiedToken;
             } catch (Exception $exception) {
                 // token was provided, but not parseable, ignore and continue
+                Log::debug('ErrorParsingBearerToken', ['exception' => $exception->getMessage()]);
             }
         }
 
