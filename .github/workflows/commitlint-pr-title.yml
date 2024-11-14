@@ -1,4 +1,4 @@
-name: lint-pull-request-title
+name: lint-pull-request
 
 on:
   pull_request:
@@ -8,8 +8,18 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout
-      uses: actions/checkout@master
-    - name: Install dependencies
-      run: npm install @commitlint/config-conventional
-    - uses: JulienKode/pull-request-name-linter-action@v0.2.0
+      - name: Checkout
+        uses: actions/checkout@master
+
+      - name: Install Dependencies
+        # yamllint disable rule:line-length
+        run: |
+          npm install @commitlint/config-conventional
+          echo "module.exports = {extends: ['@commitlint/config-conventional'], rules: { 'subject-case': [0,'always',['sentence-case']],'header-max-length': [2, 'always', 120], 'body-max-line-length': [0, 'always', 120] }};" > commitlint.config.js
+        # yamllint enable rule:line-length
+
+      - name: Lint the PR Title
+        run: |
+          echo "${PR_TITLE}" | npx --yes commitlint
+        env:
+          PR_TITLE: '${{ github.event.pull_request.title }}'
